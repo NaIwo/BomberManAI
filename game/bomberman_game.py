@@ -2,7 +2,7 @@ import pygame
 
 from game.config import Screen, PlayerProperties, GameProperties, MOVE_DICT_REVERSE, Move
 from game.board_elements import Player, Bomb, Coin
-from utils import RandomPosition
+from utils import RandomValues
 from typing import Tuple, List
 
 
@@ -25,20 +25,20 @@ class BomberManGameAttribute:
                 color = PlayerProperties.HUMAN_PLAYER_COLOR.value
             else:
                 color = PlayerProperties.BOT_PLAYER_COLOR.value
-            player: Player = Player(*RandomPosition.get_x_y(), color=color, idx=player_idx)
+            player: Player = Player(*RandomValues.get_x_y(), color=color, idx=player_idx)
             self.players_list.add(player)
 
     def _set_bombs(self):
         bomb_idx: int
         for bomb_idx in range(GameProperties.NUM_BOMBS.value):
-            bomb: Bomb = Bomb(*RandomPosition.get_x_y(), idx=bomb_idx)
+            bomb: Bomb = Bomb(*RandomValues.get_x_y(), idx=bomb_idx)
             self.bombs_list.add(bomb)
 
     def _set_coins(self):
         coin_idx: int
         for coin_idx in range(GameProperties.NUM_COINS.value):
-            coin: Coin = Coin(*RandomPosition.get_x_y(), idx=coin_idx)
-            self.bombs_list.add(coin)
+            coin: Coin = Coin(*RandomValues.get_x_y(), idx=coin_idx)
+            self.coins_list.add(coin)
 
 
 class BomberManGame:
@@ -61,7 +61,8 @@ class BomberManGame:
     def handle_player_and_bomb_collision_if_necessary(self, agent: pygame.sprite.Sprite, action: int):
         collision_bombs: List = pygame.sprite.spritecollide(agent, self.attributes.bombs_list, False)
         bomb: pygame.sprite.Sprite
-        pygame.sprite.Group(collision_bombs).update(action)
+        for bomb in collision_bombs:
+            bomb.update_move_information(action)
 
     def render(self, mode: str = 'human') -> None:
         if mode == 'human' and not self.attributes.human_render:

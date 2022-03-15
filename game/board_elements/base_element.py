@@ -11,6 +11,9 @@ class BaseElement(Sprite):
         self.name: str = name
         self.rect = pygame.Rect(*coordinates_tuple)
         self.clamp_position()
+        self._update_properties(shape_properties, color)
+
+    def _update_properties(self, shape_properties: List, color: Tuple):
         self.image = pygame.Surface(shape_properties)
         self.image.fill(color)
 
