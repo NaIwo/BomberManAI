@@ -8,7 +8,7 @@ class GameProperties(Enum):
     HUMAN_IDX = 0
     NUM_BOMBS = 3
     NUM_COINS = 1
-    FPS = 15
+    FPS = 25
 
 
 class Screen(Enum):
@@ -19,11 +19,11 @@ class Screen(Enum):
 
 class Move(Enum):
     NOT_MOVING = (0, 0)
-    UP = (0, 1)
-    DOWN = (0, -1)
+    UP = (0, -1)
+    DOWN = (0, 1)
     RIGHT = (1, 0)
-    LEFT = (0, -1)
-    SPEED = 25
+    LEFT = (-1, 0)
+    SPEED = 8
 
 
 MOVE_DICT: Dict = {

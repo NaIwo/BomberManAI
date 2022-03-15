@@ -1,13 +1,20 @@
 from pygame.sprite import Sprite
+from typing import Tuple, List
+import pygame
 
 from game.config import PlayerProperties, Screen
 
 
 class BaseElement(Sprite):
-    def __init__(self):
+    def __init__(self, coordinates_tuple: Tuple, name: str, shape_properties: List, color: Tuple):
         super().__init__()
+        self.name: str = name
+        self.rect = pygame.Rect(*coordinates_tuple)
+        self.clamp_position()
+        self.image = pygame.Surface(shape_properties)
+        self.image.fill(color)
 
-    def update(self, move: int) -> None:
+    def update(self, move: int = -1) -> None:
         pass
 
     def clamp_position(self) -> None:

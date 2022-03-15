@@ -1,26 +1,26 @@
-import pygame
-from typing import Tuple
+from typing import Tuple, List
 
-from game.config import BombProperties, Move, Screen
+from game.config import BombProperties, Move, Screen, MOVE_DICT
 from .base_element import BaseElement
 
 
 class Bomb(BaseElement):
-    def __init__(self, left: int, top: int):
-        super().__init__()
-        self.rect = pygame.Rect(left, top, BombProperties.WIDTH.value, BombProperties.HEIGHT.value)
+    NAMESPACE: str = 'Bomb_{}'
+
+    def __init__(self, left: int, top: int, idx: int):
+        coordinates_tuple: Tuple = (left, top, BombProperties.WIDTH.value, BombProperties.HEIGHT.value)
+        shape_properties: List = [BombProperties.WIDTH.value, BombProperties.HEIGHT.value]
+        super().__init__(coordinates_tuple, Bomb.NAMESPACE.format(idx), shape_properties, color=BombProperties.COLOR.value)
         self.is_moving: bool = False
         self.time_to_explosion: int = BombProperties.EXPLOSION_TIME.value
-        self.clamp_position()
         self.current_move: Move = Move.NOT_MOVING
-        self.image = pygame.Surface([BombProperties.WIDTH.value, BombProperties.HEIGHT.value])
-        self.image.fill(BombProperties.COLOR.value)
 
-    def update(self, player_move: Move) -> None:
-        move_tuple: Tuple = player_move.value * Move.SPEED.value
-        self.rect.x += move_tuple[0]
-        self.rect.y += move_tuple[1]
-        self.is_moving = True
+    def update(self, move: int = -1) -> None:
+        if MOVE_DICT[move] != Move.NOT_MOVING:
+            self.is_moving = True
+            self.current_move = MOVE_DICT[move]
+        self.rect.x += self.current_move.value[0] * Move.SPEED.value
+        self.rect.y += self.current_move.value[1] * Move.SPEED.value
         self.clamp_position()
 
     def clamp_position(self) -> None:
