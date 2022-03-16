@@ -1,21 +1,37 @@
 import pygame
+from pygame.sprite import Sprite, Group
 
 from game.config import Screen, GameProperties, MOVE_DICT_REVERSE, Move
 from game.board_elements import Player, Bomb, Coin
 from utils import RandomValues
-from typing import List, Dict
+from typing import List, Dict, Union
+import numpy as np
 
 
 class BomberManGameAttribute:
     def __init__(self):
         self.human_render: bool = False
-        self.players_list: pygame.sprite.Group = pygame.sprite.Group()
-        self.bombs_list: pygame.sprite.Group = pygame.sprite.Group()
-        self.coins_list: pygame.sprite.Group = pygame.sprite.Group()
+        self.players_list: Group = Group()
+        self.bombs_list: Group = Group()
+        self.coins_list: Group = Group()
+
+        """
+        Observation:
+        [player x; player y, player move direction; player score] for each player
+        [bomb x; bomb y; bomb move direction; is during explosion; speed] for each bomb
+        [coin x; coin y;] for each coin
+
+        so dimensionality is: 5*number_of_bombs + 2*number_of_coins + 4*number_of_players
+        """
+        self._observations: Dict = {
+            'players': np.zeros(shape=(GameProperties.NUM_PLAYERS.value, 4)),
+            'bombs': np.zeros(shape=(GameProperties.NUM_BOMBS.value, 5)),
+            'coins': np.zeros(shape=(GameProperties.NUM_COINS.value, 2))
+        }
 
         self._add_players()
-        self.add_bombs()
-        self.add_coins()
+        self._update_bombs_attributes()
+        self._update_coins_attributes()
 
     def _add_players(self) -> None:
         player_idx: int
@@ -29,29 +45,69 @@ class BomberManGameAttribute:
                                     color_source=color_source, idx=player_idx)
             self.players_list.add(player)
 
-    def add_bombs(self):
+            local_observation: List = [player.rect.centerx, player.rect.centery, player.get_current_move(),
+                                       player.score]
+            self._observations['players'][player_idx] = np.array(local_observation)
+
+    def update(self) -> None:
+        self._update_players_observations()
+        self._update_bombs_attributes()
+        self._update_coins_attributes()
+
+    def _update_players_observations(self) -> None:
+        player_idx: int
+        player: Sprite
+        for player_idx, player in enumerate(self.players_list):
+            local_observation: List = [player.rect.centerx, player.rect.centery, player.get_current_move(),
+                                       player.score]
+            self._observations['players'][player_idx] = np.array(local_observation)
+
+    def _update_bombs_attributes(self):
         bomb_idx: int
         for bomb_idx in range(GameProperties.NUM_BOMBS.value):
-            bomb: Bomb = Bomb(*RandomValues.get_x_y_without_overlapping(self.get_all_points()), idx=bomb_idx)
+            bomb: Union[Bomb, Sprite] = Bomb(*RandomValues.get_x_y_without_overlapping(self.get_all_points()),
+                                             idx=bomb_idx)
             if not self.bombs_list.has(bomb):
                 self.bombs_list.add(bomb)
+            else:
+                bomb = self.bombs_list.sprites()[bomb_idx]
+            local_observation: List = [bomb.rect.centerx, bomb.rect.centery, bomb.get_current_move(),
+                                       bomb.is_during_explosion(), bomb.speed]
+            self._observations['bombs'][bomb_idx] = np.array(local_observation)
 
-    def add_coins(self):
+    def _update_coins_attributes(self):
         coin_idx: int
         for coin_idx in range(GameProperties.NUM_COINS.value):
-            coin: Coin = Coin(*RandomValues.get_x_y_without_overlapping(self.get_all_points()), idx=coin_idx)
-            if not self.coins_list.add(coin):
+            coin: Union[Coin, Sprite] = Coin(*RandomValues.get_x_y_without_overlapping(self.get_all_points()),
+                                             idx=coin_idx)
+            if not self.coins_list.has(coin):
                 self.coins_list.add(coin)
+            else:
+                coin = self.coins_list.sprites()[coin_idx]
+            local_observation: List = [coin.rect.centerx, coin.rect.centery]
+            self._observations['coins'][coin_idx] = np.array(local_observation)
 
     def get_all_points(self) -> List[List]:
         points = list()
-        elements_group: pygame.sprite.Group
+        elements_group: Group
         for elements_group in [self.players_list, self.bombs_list, self.coins_list]:
-            element: pygame.sprite.Sprite
+            element: Sprite
             for element in elements_group:
                 point: List = [element.rect.centerx, element.rect.centery]
                 points.append(point)
         return points
+
+    def get_observations(self) -> np.ndarray:
+        return np.concatenate((
+            self._observations['players'].flatten(),
+            self._observations['bombs'].flatten(),
+            self._observations['coins'].flatten()
+        ))
+
+    @staticmethod
+    def get_number_of_features() -> int:
+        return (GameProperties.NUM_PLAYERS.value * 4) + (GameProperties.NUM_BOMBS.value * 5) + (
+                    GameProperties.NUM_COINS.value * 2)
 
 
 class BomberManGame:
@@ -67,18 +123,18 @@ class BomberManGame:
         return self.attributes.players_list
 
     def update_board_info_by_player_action(self, agent_idx: int, action: int):
-        agent: pygame.sprite.Sprite = self.attributes.players_list.sprites()[agent_idx]
+        agent: Sprite = self.attributes.players_list.sprites()[agent_idx]
         agent.update_move(action)
         self._handle_bombs_events(agent, action)
         self._handle_coins_events(agent)
 
-    def _handle_bombs_events(self, agent: pygame.sprite.Sprite, action: int):
+    def _handle_bombs_events(self, agent: Sprite, action: int):
         self._agent_interaction(agent, action)
         self._bombs_interactions()
 
-    def _agent_interaction(self, agent: pygame.sprite.Sprite, action: int) -> None:
+    def _agent_interaction(self, agent: Sprite, action: int) -> None:
         player_bombs: List = pygame.sprite.spritecollide(agent, self.attributes.bombs_list, False)
-        bomb: pygame.sprite.Sprite
+        bomb: Sprite
         for bomb in player_bombs:
             if bomb.time_to_explosion > 0:
                 bomb.update_move_information(action)
@@ -88,10 +144,10 @@ class BomberManGame:
     def _bombs_interactions(self) -> None:
         bombs_and_bombs: Dict = pygame.sprite.groupcollide(self.attributes.bombs_list, self.attributes.bombs_list,
                                                            False, False)
-        bomb_source: pygame.sprite.Sprite
+        bomb_source: Sprite
         bomb_target_list: List
         for bomb_source, bomb_target_list in bombs_and_bombs.items():
-            bomb_target: pygame.sprite.Sprite
+            bomb_target: Sprite
             for bomb_target in bomb_target_list:
                 if bomb_source == bomb_target:
                     continue
@@ -100,13 +156,13 @@ class BomberManGame:
                 elif bomb_source.was_touched():
                     bomb_source.update_move_information(MOVE_DICT_REVERSE[Move.NOT_MOVING])
 
-    def _handle_coins_events(self, agent: pygame.sprite.Sprite):
+    def _handle_coins_events(self, agent: Sprite):
         self._collect_coins(agent)
         self._explode_coins()
 
-    def _collect_coins(self, agent: pygame.sprite.Sprite) -> None:
+    def _collect_coins(self, agent: Sprite) -> None:
         collision_coins: List = pygame.sprite.spritecollide(agent, self.attributes.coins_list, False)
-        coin: pygame.sprite.Sprite
+        coin: Sprite
         for coin in collision_coins:
             agent.increase_player_score()
             coin.collected_by_player = True
@@ -114,10 +170,10 @@ class BomberManGame:
     def _explode_coins(self) -> None:
         exploded_coins: Dict = pygame.sprite.groupcollide(self.attributes.coins_list, self.attributes.bombs_list,
                                                           False, False)
-        coin: pygame.sprite.Sprite
+        coin: Sprite
         bombs: Dict
         for coin, bombs in exploded_coins.items():
-            bomb: pygame.sprite.Sprite
+            bomb: Sprite
             if any([bomb.is_during_explosion() for bomb in bombs]):
                 coin.destroyed_by_bomb = True
 
@@ -125,8 +181,15 @@ class BomberManGame:
         self.attributes.players_list.update()
         self.attributes.coins_list.update()
         self.attributes.bombs_list.update()
-        self.attributes.add_bombs()
-        self.attributes.add_coins()
+
+        self.attributes.update()
+        print(self.get_observations())
+
+    def get_observations(self) -> np.ndarray:
+        return self.attributes.get_observations()
+
+    def get_number_of_features(self) -> int:
+        return self.attributes.get_number_of_features()
 
     def render(self, mode: str = 'human') -> None:
         if mode == 'human' and not self.attributes.human_render:

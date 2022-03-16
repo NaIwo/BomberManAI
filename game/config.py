@@ -6,8 +6,8 @@ class GameProperties(Enum):
     NUM_PLAYERS = 2
     HUMAN_PLAYER = True
     HUMAN_IDX = 0
-    NUM_BOMBS = 15
-    NUM_COINS = 3
+    NUM_BOMBS = 8
+    NUM_COINS = 30
     FPS = 30
     POINTS_CREATION_REPETITION_NUM = 50
 

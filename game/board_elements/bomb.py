@@ -10,7 +10,6 @@ class Bomb(BaseElement):
     def __init__(self, left: int, top: int, idx: int):
         # if bomb during explosion, time_to_explosion is getting negative
         self.time_to_explosion: int = BombProperties.TIME_TO_EXPLOSION.value
-        self.current_move: Move = Move.NOT_MOVING
         self.speed: int = 0
         # if bomb has ever been touched
         self.touched: bool = False

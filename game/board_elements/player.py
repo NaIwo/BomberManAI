@@ -10,7 +10,6 @@ class Player(BaseElement):
     def __init__(self, left: int, top: int, color_source: str, idx: int):
         self.score: int = 0
         self.freezing_time: int = 0
-        self.current_move: Move = Move.NOT_MOVING
         coordinates_tuple: Tuple = (left, top, PlayerProperties.WIDTH.value, PlayerProperties.HEIGHT.value)
         shape_properties: List = [PlayerProperties.WIDTH.value, PlayerProperties.HEIGHT.value]
         color: Tuple = PlayerProperties[color_source].value
