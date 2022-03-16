@@ -13,7 +13,13 @@ class Player(BaseElement):
         coordinates_tuple: Tuple = (left, top, PlayerProperties.WIDTH.value, PlayerProperties.HEIGHT.value)
         shape_properties: List = [PlayerProperties.WIDTH.value, PlayerProperties.HEIGHT.value]
         color: Tuple = PlayerProperties[color_source].value
-        super().__init__(coordinates_tuple, Player.NAMESPACE.format(idx), shape_properties, color)
+        image_path: str
+        if 'HUMAN' in color_source:
+            image_path = PlayerProperties.HUMAN_PLAYER_IMAGE_PATH.value
+        else:
+            image_path = PlayerProperties.BOT_PLAYER_IMAGE_PATH.value
+        super().__init__(coordinates_tuple, Player.NAMESPACE.format(idx), shape_properties, color,
+                         image_path=image_path)
 
     def increase_player_score(self) -> None:
         if self.freezing_time == 0:

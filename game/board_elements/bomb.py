@@ -17,7 +17,7 @@ class Bomb(BaseElement):
         coordinates_tuple: Tuple = (left, top, BombProperties.WIDTH.value, BombProperties.HEIGHT.value)
         shape_properties: List = [BombProperties.WIDTH.value, BombProperties.HEIGHT.value]
         super().__init__(coordinates_tuple, Bomb.NAMESPACE.format(idx), shape_properties,
-                         color=BombProperties.COLOR.value)
+                         color=BombProperties.COLOR.value, image_path=BombProperties.IMAGE_PATH.value)
 
     def update_move_information(self, move: int) -> None:
         if not self._can_be_touch():
@@ -70,6 +70,7 @@ class Bomb(BaseElement):
             left, top, BombProperties.EXPLOSION_WIDTH.value, BombProperties.EXPLOSION_HEIGHT.value)
         shape_properties: List = [BombProperties.EXPLOSION_WIDTH.value, BombProperties.EXPLOSION_HEIGHT.value]
         self._update_properties(coordinates_tuple, shape_properties, BombProperties.EXPLOSION_COLOR.value)
+        self._update_image(BombProperties.IMAGE_PATH_EXPLOSION.value)
 
     def auto_explosion(self):
         if not self.is_during_explosion():

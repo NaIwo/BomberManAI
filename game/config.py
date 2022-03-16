@@ -1,5 +1,6 @@
 from enum import Enum
 from typing import Dict
+import os
 
 
 class GameProperties(Enum):
@@ -7,9 +8,10 @@ class GameProperties(Enum):
     HUMAN_PLAYER = True
     HUMAN_IDX = 0
     NUM_BOMBS = 8
-    NUM_COINS = 30
+    NUM_COINS = 3
     FPS = 30
     POINTS_CREATION_REPETITION_NUM = 50
+    LOAD_IMAGES = True
 
 
 class Screen(Enum):
@@ -52,6 +54,8 @@ class Score(Enum):
 
 
 class PlayerProperties(Enum):
+    BOT_PLAYER_IMAGE_PATH = os.path.join('game', 'board_elements', 'images', 'player.png')
+    HUMAN_PLAYER_IMAGE_PATH = os.path.join('game', 'board_elements', 'images', 'human_player.png')
     WIDTH = 20
     HEIGHT = 20
     BOT_PLAYER_COLOR = (204, 0, 0)
@@ -59,6 +63,8 @@ class PlayerProperties(Enum):
 
 
 class BombProperties(Enum):
+    IMAGE_PATH = os.path.join('game', 'board_elements', 'images', 'bomb.png')
+    IMAGE_PATH_EXPLOSION = os.path.join('game', 'board_elements', 'images', 'explosion.png')
     WIDTH = PlayerProperties.WIDTH.value
     HEIGHT = PlayerProperties.HEIGHT.value
     EXPLOSION_WIDTH = PlayerProperties.WIDTH.value * 2
@@ -73,6 +79,7 @@ class BombProperties(Enum):
 
 
 class CoinProperties(Enum):
+    IMAGE_PATH = os.path.join('game', 'board_elements', 'images', 'coin.png')
     WIDTH = PlayerProperties.WIDTH.value
     HEIGHT = PlayerProperties.HEIGHT.value
     COLOR = (255, 255, 0)

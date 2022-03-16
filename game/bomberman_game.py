@@ -1,7 +1,7 @@
 import pygame
 from pygame.sprite import Sprite, Group
 
-from game.config import Screen, GameProperties, MOVE_DICT_REVERSE, Move
+from game.config import Screen, GameProperties, MOVE_DICT_REVERSE, Move, Score
 from game.board_elements import Player, Bomb, Coin
 from utils import RandomValues
 from typing import List, Dict, Union
@@ -11,21 +11,28 @@ import numpy as np
 class BomberManGameAttribute:
     def __init__(self):
         self.human_render: bool = False
+        self.end_game: bool = False
         self.players_list: Group = Group()
         self.bombs_list: Group = Group()
         self.coins_list: Group = Group()
 
         """
         Observation:
-        [player x; player y, player move direction; player score] for each player
+        [player x; player y; player move direction; player score] for each player
         [bomb x; bomb y; bomb move direction; is during explosion; speed] for each bomb
-        [coin x; coin y;] for each coin
+        [coin x; coin y] for each coin
 
         so dimensionality is: 5*number_of_bombs + 2*number_of_coins + 4*number_of_players
+        
+        but 'move direction' are categorical, so we change them into one-hot.
+        
+        finally:
+        
+        9*number_of_bombs + 2*number_of_coins + 8*number_of_players
         """
         self._observations: Dict = {
-            'players': np.zeros(shape=(GameProperties.NUM_PLAYERS.value, 4)),
-            'bombs': np.zeros(shape=(GameProperties.NUM_BOMBS.value, 5)),
+            'players': np.zeros(shape=(GameProperties.NUM_PLAYERS.value, 8)),
+            'bombs': np.zeros(shape=(GameProperties.NUM_BOMBS.value, 9)),
             'coins': np.zeros(shape=(GameProperties.NUM_COINS.value, 2))
         }
 
@@ -44,8 +51,7 @@ class BomberManGameAttribute:
             player: Player = Player(*RandomValues.get_x_y_without_overlapping(self.get_all_points()),
                                     color_source=color_source, idx=player_idx)
             self.players_list.add(player)
-
-            local_observation: List = [player.rect.centerx, player.rect.centery, player.get_current_move(),
+            local_observation: List = [player.rect.centerx, player.rect.centery, *player.get_current_move(),
                                        player.score]
             self._observations['players'][player_idx] = np.array(local_observation)
 
@@ -58,9 +64,10 @@ class BomberManGameAttribute:
         player_idx: int
         player: Sprite
         for player_idx, player in enumerate(self.players_list):
-            local_observation: List = [player.rect.centerx, player.rect.centery, player.get_current_move(),
+            local_observation: List = [player.rect.centerx, player.rect.centery, *player.get_current_move(),
                                        player.score]
             self._observations['players'][player_idx] = np.array(local_observation)
+            self.end_game = (player.score == Score.SCORE_LIMIT.value) or self.end_game
 
     def _update_bombs_attributes(self):
         bomb_idx: int
@@ -71,7 +78,7 @@ class BomberManGameAttribute:
                 self.bombs_list.add(bomb)
             else:
                 bomb = self.bombs_list.sprites()[bomb_idx]
-            local_observation: List = [bomb.rect.centerx, bomb.rect.centery, bomb.get_current_move(),
+            local_observation: List = [bomb.rect.centerx, bomb.rect.centery, *bomb.get_current_move(),
                                        bomb.is_during_explosion(), bomb.speed]
             self._observations['bombs'][bomb_idx] = np.array(local_observation)
 
@@ -106,7 +113,7 @@ class BomberManGameAttribute:
 
     @staticmethod
     def get_number_of_features() -> int:
-        return (GameProperties.NUM_PLAYERS.value * 4) + (GameProperties.NUM_BOMBS.value * 5) + (
+        return (GameProperties.NUM_PLAYERS.value * 8) + (GameProperties.NUM_BOMBS.value * 9) + (
                     GameProperties.NUM_COINS.value * 2)
 
 
@@ -183,13 +190,16 @@ class BomberManGame:
         self.attributes.bombs_list.update()
 
         self.attributes.update()
-        print(self.get_observations())
+        # print(self.is_end_game())
 
     def get_observations(self) -> np.ndarray:
         return self.attributes.get_observations()
 
     def get_number_of_features(self) -> int:
         return self.attributes.get_number_of_features()
+
+    def is_end_game(self) -> bool:
+        return self.attributes.end_game
 
     def render(self, mode: str = 'human') -> None:
         if mode == 'human' and not self.attributes.human_render:

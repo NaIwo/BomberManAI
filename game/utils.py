@@ -1,6 +1,8 @@
 import random
-from typing import Tuple, List
+from typing import Tuple, List, Optional
 import numpy as np
+import pygame
+import os
 
 from config import Screen, GameProperties, PlayerProperties
 
@@ -22,10 +24,19 @@ class RandomValues:
             x_dist: int = np.abs(points[:, 0] - x)
             y_dist: int = np.abs(points[:, 1] - y)
             result: List[bool] = (x_dist > PlayerProperties.WIDTH.value * 1.5) | (
-                        y_dist > PlayerProperties.HEIGHT.value * 1.5)
+                    y_dist > PlayerProperties.HEIGHT.value * 1.5)
             if all(result):
                 return x, y
             rep += 1
         raise GenerationError('Generation of non-overlapping elements failed. \n'
                               'Try again by decreasing the number of elements (players, bombs, coins) \n'
                               'or increasing the number of generation attempts or change the map parameters.')
+
+
+def get_image(image_path: str, width: float, height: float) -> Optional[pygame.Surface]:
+    cwd: str = os.path.dirname(os.path.dirname(__file__))
+    image: pygame.Surface = pygame.image.load(os.path.join(cwd, image_path))
+    image = pygame.transform.scale(image, (width + 2, height + 2))
+    surface: pygame.Surface = pygame.Surface(image.get_size(), flags=pygame.SRCALPHA)
+    surface.blit(image, (0, 0))
+    return surface

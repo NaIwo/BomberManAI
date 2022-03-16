@@ -11,7 +11,7 @@ class Coin(BaseElement):
         coordinates_tuple: Tuple = (left, top, CoinProperties.WIDTH.value, CoinProperties.HEIGHT.value)
         shape_properties: List = [CoinProperties.WIDTH.value, CoinProperties.HEIGHT.value]
         super().__init__(coordinates_tuple, Coin.NAMESPACE.format(idx), shape_properties,
-                         color=CoinProperties.COLOR.value)
+                         color=CoinProperties.COLOR.value, image_path=CoinProperties.IMAGE_PATH.value)
         self.destroyed_by_bomb: bool = False
         self.collected_by_player: bool = False
 
