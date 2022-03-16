@@ -9,15 +9,16 @@ class BaseElement(Sprite):
     def __init__(self, coordinates_tuple: Tuple, name: str, shape_properties: List, color: Tuple):
         super().__init__()
         self.name: str = name
-        self.rect = pygame.Rect(*coordinates_tuple)
+        self.idx: int = int(self.name[self.name.rfind('_')+1:])
+        self._update_properties(coordinates_tuple, shape_properties, color)
         self.clamp_position()
-        self._update_properties(shape_properties, color)
 
-    def _update_properties(self, shape_properties: List, color: Tuple):
+    def _update_properties(self, coordinates_tuple, shape_properties: List, color: Tuple):
+        self.rect = pygame.Rect(*coordinates_tuple)
         self.image = pygame.Surface(shape_properties)
         self.image.fill(color)
 
-    def update(self, move: int = -1) -> None:
+    def update(self) -> None:
         pass
 
     def clamp_position(self) -> None:
@@ -25,3 +26,9 @@ class BaseElement(Sprite):
         max_y: int = Screen.HEIGHT.value - PlayerProperties.HEIGHT.value
         self.rect.x = max(min(max_x, self.rect.x), 0)
         self.rect.y = max(min(max_y, self.rect.y), 0)
+
+    def __eq__(self, other) -> bool:
+        return self.name == other.name
+
+    def __hash__(self):
+        return self.idx

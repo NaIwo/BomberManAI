@@ -8,29 +8,49 @@ class Bomb(BaseElement):
     NAMESPACE: str = 'Bomb_{}'
 
     def __init__(self, left: int, top: int, idx: int):
+        # if bomb during explosion, time_to_explosion is getting negative
         self.time_to_explosion: int = BombProperties.TIME_TO_EXPLOSION.value
         self.current_move: Move = Move.NOT_MOVING
         self.speed: int = 0
+        # if bomb has ever been touched
         self.touched: bool = False
+        self.time_to_next_touch: int = 0
         coordinates_tuple: Tuple = (left, top, BombProperties.WIDTH.value, BombProperties.HEIGHT.value)
         shape_properties: List = [BombProperties.WIDTH.value, BombProperties.HEIGHT.value]
         super().__init__(coordinates_tuple, Bomb.NAMESPACE.format(idx), shape_properties,
                          color=BombProperties.COLOR.value)
 
     def update_move_information(self, move: int) -> None:
+        if not self._can_be_touch():
+            return
+        self.time_to_next_touch = BombProperties.TIME_TO_NEXT_TOUCH.value
+        self.touched = True
         if MOVE_DICT[move] != Move.NOT_MOVING:
-            self.touched = True
             self.current_move = MOVE_DICT[move]
-            self.speed = Move.SPEED.value
+            self.speed = Move.SPEED.value * BombProperties.SPEED_MULTIPLICATION_FACTOR.value
         else:
             new_move: int = (MOVE_DICT_REVERSE[self.current_move] + 2) % Move.NUMBER_OF_MOVES.value
             self.current_move = MOVE_DICT[new_move]
 
-    def update(self, *kwargs) -> None:
-        self.speed = max(self.speed + BombProperties.SLOWING_FACTOR.value, 0)
+    def update(self) -> None:
+        self._kill_if_necessary()
         self._update_explosion_information()
+        self._decrease_time_to_next_touch()
+        self._set_speed()
         if self.speed == 0:
             return
+        self._set_new_position()
+
+    def _kill_if_necessary(self) -> None:
+        if self.time_to_end_explosion() == 0: self.kill()
+
+    def _decrease_time_to_next_touch(self) -> None:
+        self.time_to_next_touch = max(self.time_to_next_touch - 1, 0)
+
+    def _set_speed(self) -> None:
+        self.speed = max(self.speed + BombProperties.SLOWING_FACTOR.value, 0)
+
+    def _set_new_position(self) -> None:
         self.rect.x += self.current_move.value[0] * self.speed
         self.rect.y += self.current_move.value[1] * self.speed
         self.clamp_position()
@@ -38,12 +58,24 @@ class Bomb(BaseElement):
     def _update_explosion_information(self) -> None:
         if not self.touched:
             return
-        if self.time_to_explosion == 0:
-            self.rect.x = max(self.rect.centerx - (BombProperties.EXPLOSION_WIDTH.value / 2), 0)
-            self.rect.y = max(self.rect.centery - (BombProperties.EXPLOSION_HEIGHT.value / 2), 0)
-            shape_properties: List = [BombProperties.EXPLOSION_WIDTH.value, BombProperties.EXPLOSION_HEIGHT.value]
-            self._update_properties(shape_properties, BombProperties.EXPLOSION_COLOR.value)
+        if self.time_to_explosion <= 0:
+            self._set_bomb_properties_as_exploded()
+        # if bomb during explosion, time_to_explosion is getting negative
         self.time_to_explosion = max(self.time_to_explosion - 1, -BombProperties.EXPLOSION_TIME.value)
+
+    def _set_bomb_properties_as_exploded(self) -> None:
+        self.speed = 0
+        left: int = max(self.rect.centerx - (BombProperties.EXPLOSION_WIDTH.value / 2), 0)
+        top: int = max(self.rect.centery - (BombProperties.EXPLOSION_HEIGHT.value / 2), 0)
+        coordinates_tuple: Tuple = (
+            left, top, BombProperties.EXPLOSION_WIDTH.value, BombProperties.EXPLOSION_HEIGHT.value)
+        shape_properties: List = [BombProperties.EXPLOSION_WIDTH.value, BombProperties.EXPLOSION_HEIGHT.value]
+        self._update_properties(coordinates_tuple, shape_properties, BombProperties.EXPLOSION_COLOR.value)
+
+    def auto_explosion(self):
+        if not self.is_during_explosion():
+            self.touched = True
+            self.time_to_explosion = 0
 
     def clamp_position(self) -> None:
         max_x: int = Screen.WIDTH.value - BombProperties.WIDTH.value
@@ -54,3 +86,22 @@ class Bomb(BaseElement):
             new_move: int = (MOVE_DICT_REVERSE[self.current_move] + 2) % Move.NUMBER_OF_MOVES.value
             self.current_move = MOVE_DICT[new_move]
         self.rect.x, self.rect.y = new_x, new_y
+
+    def time_to_end_explosion(self) -> int:
+        # if bomb during explosion, time_to_explosion is getting negative
+        return BombProperties.EXPLOSION_TIME.value + self.time_to_explosion
+
+    def is_during_explosion(self) -> bool:
+        return (self.time_to_explosion >= -BombProperties.EXPLOSION_TIME.value) and (self.time_to_explosion <= 0)
+
+    def was_touched(self) -> bool:
+        return self.touched
+
+    def _can_be_touch(self) -> bool:
+        """
+        protects against an infinite number of reflections
+        """
+        if self.time_to_next_touch == 0:
+            return True
+        else:
+            return False

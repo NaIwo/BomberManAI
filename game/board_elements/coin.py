@@ -1,4 +1,3 @@
-import pygame
 from typing import Tuple, List
 
 from game.config import CoinProperties
@@ -13,3 +12,12 @@ class Coin(BaseElement):
         shape_properties: List = [CoinProperties.WIDTH.value, CoinProperties.HEIGHT.value]
         super().__init__(coordinates_tuple, Coin.NAMESPACE.format(idx), shape_properties,
                          color=CoinProperties.COLOR.value)
+        self.destroyed_by_bomb: bool = False
+        self.collected_by_player: bool = False
+
+    def update(self) -> None:
+        if self._should_be_killed(): self.kill()
+
+    def _should_be_killed(self) -> bool:
+        return self.destroyed_by_bomb or self.collected_by_player
+

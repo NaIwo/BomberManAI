@@ -1,9 +1,9 @@
 import pygame
 
-from game.config import Screen, PlayerProperties, GameProperties, MOVE_DICT_REVERSE, Move
+from game.config import Screen, GameProperties, MOVE_DICT_REVERSE, Move
 from game.board_elements import Player, Bomb, Coin
 from utils import RandomValues
-from typing import Tuple, List
+from typing import List, Dict
 
 
 class BomberManGameAttribute:
@@ -13,32 +13,45 @@ class BomberManGameAttribute:
         self.bombs_list: pygame.sprite.Group = pygame.sprite.Group()
         self.coins_list: pygame.sprite.Group = pygame.sprite.Group()
 
-        self._set_players()
-        self._set_bombs()
-        self._set_coins()
+        self._add_players()
+        self.add_bombs()
+        self.add_coins()
 
-    def _set_players(self) -> None:
+    def _add_players(self) -> None:
         player_idx: int
         for player_idx in range(GameProperties.NUM_PLAYERS.value):
-            color: Tuple
+            color_source: str
             if player_idx == GameProperties.HUMAN_IDX.value and GameProperties.HUMAN_PLAYER.value:
-                color = PlayerProperties.HUMAN_PLAYER_COLOR.value
+                color_source = 'HUMAN_PLAYER_COLOR'
             else:
-                color = PlayerProperties.BOT_PLAYER_COLOR.value
-            player: Player = Player(*RandomValues.get_x_y(), color=color, idx=player_idx)
+                color_source = 'BOT_PLAYER_COLOR'
+            player: Player = Player(*RandomValues.get_x_y_without_overlapping(self.get_all_points()),
+                                    color_source=color_source, idx=player_idx)
             self.players_list.add(player)
 
-    def _set_bombs(self):
+    def add_bombs(self):
         bomb_idx: int
         for bomb_idx in range(GameProperties.NUM_BOMBS.value):
-            bomb: Bomb = Bomb(*RandomValues.get_x_y(), idx=bomb_idx)
-            self.bombs_list.add(bomb)
+            bomb: Bomb = Bomb(*RandomValues.get_x_y_without_overlapping(self.get_all_points()), idx=bomb_idx)
+            if not self.bombs_list.has(bomb):
+                self.bombs_list.add(bomb)
 
-    def _set_coins(self):
+    def add_coins(self):
         coin_idx: int
         for coin_idx in range(GameProperties.NUM_COINS.value):
-            coin: Coin = Coin(*RandomValues.get_x_y(), idx=coin_idx)
-            self.coins_list.add(coin)
+            coin: Coin = Coin(*RandomValues.get_x_y_without_overlapping(self.get_all_points()), idx=coin_idx)
+            if not self.coins_list.add(coin):
+                self.coins_list.add(coin)
+
+    def get_all_points(self) -> List[List]:
+        points = list()
+        elements_group: pygame.sprite.Group
+        for elements_group in [self.players_list, self.bombs_list, self.coins_list]:
+            element: pygame.sprite.Sprite
+            for element in elements_group:
+                point: List = [element.rect.centerx, element.rect.centery]
+                points.append(point)
+        return points
 
 
 class BomberManGame:
@@ -49,20 +62,71 @@ class BomberManGame:
         self.window = pygame.Surface((Screen.WIDTH.value, Screen.HEIGHT.value))
         pygame.display.set_caption("Bomber Man")
 
+    @property
     def players(self):
         return self.attributes.players_list
 
-    def update_board_by_player_action(self, agent_idx: int, action: int):
+    def update_board_info_by_player_action(self, agent_idx: int, action: int):
         agent: pygame.sprite.Sprite = self.attributes.players_list.sprites()[agent_idx]
-        agent.update(action)
-        self.handle_player_and_bomb_collision_if_necessary(agent, action)
-        self.attributes.bombs_list.update()
+        agent.update_move(action)
+        self._handle_bombs_events(agent, action)
+        self._handle_coins_events(agent)
 
-    def handle_player_and_bomb_collision_if_necessary(self, agent: pygame.sprite.Sprite, action: int):
-        collision_bombs: List = pygame.sprite.spritecollide(agent, self.attributes.bombs_list, False)
+    def _handle_bombs_events(self, agent: pygame.sprite.Sprite, action: int):
+        self._agent_interaction(agent, action)
+        self._bombs_interactions()
+
+    def _agent_interaction(self, agent: pygame.sprite.Sprite, action: int) -> None:
+        player_bombs: List = pygame.sprite.spritecollide(agent, self.attributes.bombs_list, False)
         bomb: pygame.sprite.Sprite
-        for bomb in collision_bombs:
-            bomb.update_move_information(action)
+        for bomb in player_bombs:
+            if bomb.time_to_explosion > 0:
+                bomb.update_move_information(action)
+            elif bomb.is_during_explosion():
+                agent.decrease_score_and_freeze(freezing_time=bomb.time_to_end_explosion())
+
+    def _bombs_interactions(self) -> None:
+        bombs_and_bombs: Dict = pygame.sprite.groupcollide(self.attributes.bombs_list, self.attributes.bombs_list,
+                                                           False, False)
+        bomb_source: pygame.sprite.Sprite
+        bomb_target_list: List
+        for bomb_source, bomb_target_list in bombs_and_bombs.items():
+            bomb_target: pygame.sprite.Sprite
+            for bomb_target in bomb_target_list:
+                if bomb_source == bomb_target:
+                    continue
+                if bomb_source.is_during_explosion() and (not bomb_target.is_during_explosion()):
+                    bomb_target.auto_explosion()
+                elif bomb_source.was_touched():
+                    bomb_source.update_move_information(MOVE_DICT_REVERSE[Move.NOT_MOVING])
+
+    def _handle_coins_events(self, agent: pygame.sprite.Sprite):
+        self._collect_coins(agent)
+        self._explode_coins()
+
+    def _collect_coins(self, agent: pygame.sprite.Sprite) -> None:
+        collision_coins: List = pygame.sprite.spritecollide(agent, self.attributes.coins_list, False)
+        coin: pygame.sprite.Sprite
+        for coin in collision_coins:
+            agent.increase_player_score()
+            coin.collected_by_player = True
+
+    def _explode_coins(self) -> None:
+        exploded_coins: Dict = pygame.sprite.groupcollide(self.attributes.coins_list, self.attributes.bombs_list,
+                                                          False, False)
+        coin: pygame.sprite.Sprite
+        bombs: Dict
+        for coin, bombs in exploded_coins.items():
+            bomb: pygame.sprite.Sprite
+            if any([bomb.is_during_explosion() for bomb in bombs]):
+                coin.destroyed_by_bomb = True
+
+    def update(self):
+        self.attributes.players_list.update()
+        self.attributes.coins_list.update()
+        self.attributes.bombs_list.update()
+        self.attributes.add_bombs()
+        self.attributes.add_coins()
 
     def render(self, mode: str = 'human') -> None:
         if mode == 'human' and not self.attributes.human_render:
@@ -106,8 +170,7 @@ if __name__ == '__main__':
 
     while not done:
         clock.tick(GameProperties.FPS.value)
-        agents = bm.players()
-        actions = [-1 for x in range(len(agents))]
+        actions = [-1 for x in range(len(bm.players))]
 
         for event in pygame.event.get():
             if event.type == pygame.KEYDOWN:
@@ -118,7 +181,7 @@ if __name__ == '__main__':
                     bm.reset()
                 if event.key == pygame.K_c:
                     cur_agent += 1
-                    if cur_agent == len(agents):
+                    if cur_agent == len(bm.players):
                         cur_agent = 0
         keys = pygame.key.get_pressed()
         if keys[pygame.K_w]:
@@ -133,7 +196,8 @@ if __name__ == '__main__':
         if quit_game:
             break
         for agent_idx, action in enumerate(actions):
-            bm.update_board_by_player_action(agent_idx, action)
+            bm.update_board_info_by_player_action(agent_idx, action)
+        bm.update()
         bm.render()
         # done = any(env.dones.values())
 

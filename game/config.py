@@ -6,9 +6,10 @@ class GameProperties(Enum):
     NUM_PLAYERS = 2
     HUMAN_PLAYER = True
     HUMAN_IDX = 0
-    NUM_BOMBS = 3
-    NUM_COINS = 1
+    NUM_BOMBS = 15
+    NUM_COINS = 3
     FPS = 30
+    POINTS_CREATION_REPETITION_NUM = 50
 
 
 class Screen(Enum):
@@ -19,7 +20,7 @@ class Screen(Enum):
 
 class Move(Enum):
     NOT_MOVING = (0, 0)
-    NUMBER_OF_MOVES = 4  # d not count 'not moving' state
+    NUMBER_OF_MOVES = 4  # do not count 'not moving' state
     UP = (0, -1)
     DOWN = (0, 1)
     RIGHT = (1, 0)
@@ -67,6 +68,8 @@ class BombProperties(Enum):
     TIME_TO_EXPLOSION = 50
     EXPLOSION_TIME = 50
     SLOWING_FACTOR = - Move.SPEED.value * 0.02
+    SPEED_MULTIPLICATION_FACTOR = 1.5
+    TIME_TO_NEXT_TOUCH = 6
 
 
 class CoinProperties(Enum):
