@@ -1,6 +1,6 @@
 from typing import List, Tuple
 
-from game.config import PlayerProperties, Move, MOVE_DICT, Score
+from game.config import PlayerProperties, Move, NUMBER_TO_MOVE, Score
 from .base_element import BaseElement
 
 
@@ -12,12 +12,14 @@ class Player(BaseElement):
         self.freezing_time: int = 0
         coordinates_tuple: Tuple = (left, top, PlayerProperties.WIDTH.value, PlayerProperties.HEIGHT.value)
         shape_properties: List = [PlayerProperties.WIDTH.value, PlayerProperties.HEIGHT.value]
-        color: Tuple = PlayerProperties[color_source].value
         image_path: str
-        if 'HUMAN' in color_source:
+        color: Tuple
+        if 'HUMAN' in color_source.upper():
             image_path = PlayerProperties.HUMAN_PLAYER_IMAGE_PATH.value
+            color = PlayerProperties.HUMAN_PLAYER_COLOR.value
         else:
             image_path = PlayerProperties.BOT_PLAYER_IMAGE_PATH.value
+            color = PlayerProperties.BOT_PLAYER_COLOR.value
         super().__init__(coordinates_tuple, Player.NAMESPACE.format(idx), shape_properties, color,
                          image_path=image_path)
 
@@ -31,7 +33,7 @@ class Player(BaseElement):
         self.freezing_time = freezing_time
 
     def update_move(self, move: int = -1) -> None:
-        self.current_move = Move.NOT_MOVING if self.freezing_time > 0 else MOVE_DICT[move]
+        self.current_move = Move.NOT_MOVING if self.freezing_time > 0 else NUMBER_TO_MOVE[move]
 
     def update(self) -> None:
         if self.freezing_time > 0:

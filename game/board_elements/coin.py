@@ -16,7 +16,8 @@ class Coin(BaseElement):
         self.collected_by_player: bool = False
 
     def update(self) -> None:
-        if self._should_be_killed(): self.kill()
+        if self._should_be_killed():
+            self.kill()
 
     def _should_be_killed(self) -> bool:
         return self.destroyed_by_bomb or self.collected_by_player

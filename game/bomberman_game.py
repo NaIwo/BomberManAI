@@ -1,7 +1,7 @@
 import pygame
 from pygame.sprite import Sprite, Group
 
-from game.config import Screen, GameProperties, MOVE_DICT_REVERSE, Move, Score
+from game.config import Screen, GameProperties, MOVE_TO_NUMBER, Move, Score
 from game.board_elements import Player, Bomb, Coin
 from utils import RandomValues
 from typing import List, Dict, Union
@@ -35,6 +35,7 @@ class BomberManGameAttribute:
             'bombs': np.zeros(shape=(GameProperties.NUM_BOMBS.value, 9)),
             'coins': np.zeros(shape=(GameProperties.NUM_COINS.value, 2))
         }
+        self._score_idx: int = 7
 
         self._add_players()
         self._update_bombs_attributes()
@@ -45,13 +46,13 @@ class BomberManGameAttribute:
         for player_idx in range(GameProperties.NUM_PLAYERS.value):
             color_source: str
             if player_idx == GameProperties.HUMAN_IDX.value and GameProperties.HUMAN_PLAYER.value:
-                color_source = 'HUMAN_PLAYER_COLOR'
+                color_source = 'HUMAN'
             else:
-                color_source = 'BOT_PLAYER_COLOR'
+                color_source = 'BOT'
             player: Player = Player(*RandomValues.get_x_y_without_overlapping(self.get_all_points()),
                                     color_source=color_source, idx=player_idx)
             self.players_list.add(player)
-            local_observation: List = [player.rect.centerx, player.rect.centery, *player.get_current_move(),
+            local_observation: List = [player.rect.centerx, player.rect.centery, *player.get_current_move_as_one_hot(),
                                        player.score]
             self._observations['players'][player_idx] = np.array(local_observation)
 
@@ -64,7 +65,7 @@ class BomberManGameAttribute:
         player_idx: int
         player: Sprite
         for player_idx, player in enumerate(self.players_list):
-            local_observation: List = [player.rect.centerx, player.rect.centery, *player.get_current_move(),
+            local_observation: List = [player.rect.centerx, player.rect.centery, *player.get_current_move_as_one_hot(),
                                        player.score]
             self._observations['players'][player_idx] = np.array(local_observation)
             self.end_game = (player.score == Score.SCORE_LIMIT.value) or self.end_game
@@ -72,22 +73,22 @@ class BomberManGameAttribute:
     def _update_bombs_attributes(self):
         bomb_idx: int
         for bomb_idx in range(GameProperties.NUM_BOMBS.value):
-            bomb: Union[Bomb, Sprite] = Bomb(*RandomValues.get_x_y_without_overlapping(self.get_all_points()),
-                                             idx=bomb_idx)
-            if not self.bombs_list.has(bomb):
+            bomb: Union[Bomb, Sprite]
+            if not self.bombs_list.has(bomb_idx):
+                bomb = Bomb(*RandomValues.get_x_y_without_overlapping(self.get_all_points()), idx=bomb_idx)
                 self.bombs_list.add(bomb)
             else:
                 bomb = self.bombs_list.sprites()[bomb_idx]
-            local_observation: List = [bomb.rect.centerx, bomb.rect.centery, *bomb.get_current_move(),
+            local_observation: List = [bomb.rect.centerx, bomb.rect.centery, *bomb.get_current_move_as_one_hot(),
                                        bomb.is_during_explosion(), bomb.speed]
             self._observations['bombs'][bomb_idx] = np.array(local_observation)
 
     def _update_coins_attributes(self):
         coin_idx: int
         for coin_idx in range(GameProperties.NUM_COINS.value):
-            coin: Union[Coin, Sprite] = Coin(*RandomValues.get_x_y_without_overlapping(self.get_all_points()),
-                                             idx=coin_idx)
-            if not self.coins_list.has(coin):
+            coin: Union[Coin, Sprite]
+            if not self.coins_list.has(coin_idx):
+                coin = Coin(*RandomValues.get_x_y_without_overlapping(self.get_all_points()), idx=coin_idx)
                 self.coins_list.add(coin)
             else:
                 coin = self.coins_list.sprites()[coin_idx]
@@ -111,10 +112,13 @@ class BomberManGameAttribute:
             self._observations['coins'].flatten()
         ))
 
+    def get_players_scores(self) -> np.ndarray:
+        return self._observations['players'][:, self._score_idx]
+
     @staticmethod
     def get_number_of_features() -> int:
         return (GameProperties.NUM_PLAYERS.value * 8) + (GameProperties.NUM_BOMBS.value * 9) + (
-                    GameProperties.NUM_COINS.value * 2)
+                GameProperties.NUM_COINS.value * 2)
 
 
 class BomberManGame:
@@ -122,7 +126,9 @@ class BomberManGame:
         self.attributes = BomberManGameAttribute()
 
         pygame.init()
+        pygame.font.init()
         self.window = pygame.Surface((Screen.WIDTH.value, Screen.HEIGHT.value))
+        self.font = pygame.font.SysFont('Helvetica', GameProperties.TEXT_SIZE.value)
         pygame.display.set_caption("Bomber Man")
 
     @property
@@ -160,8 +166,8 @@ class BomberManGame:
                     continue
                 if bomb_source.is_during_explosion() and (not bomb_target.is_during_explosion()):
                     bomb_target.auto_explosion()
-                elif bomb_source.was_touched():
-                    bomb_source.update_move_information(MOVE_DICT_REVERSE[Move.NOT_MOVING])
+                elif bomb_source.was_touched() and (not bomb_source.is_during_explosion()):
+                    bomb_source.update_move_information(MOVE_TO_NUMBER[Move.NOT_MOVING])
 
     def _handle_coins_events(self, agent: Sprite):
         self._collect_coins(agent)
@@ -190,7 +196,6 @@ class BomberManGame:
         self.attributes.bombs_list.update()
 
         self.attributes.update()
-        # print(self.is_end_game())
 
     def get_observations(self) -> np.ndarray:
         return self.attributes.get_observations()
@@ -214,7 +219,14 @@ class BomberManGame:
         self.attributes.players_list.draw(self.window)
         self.attributes.bombs_list.draw(self.window)
         self.attributes.coins_list.draw(self.window)
+        self.render_text()
         pygame.display.flip()
+
+    def render_text(self) -> None:
+        scores: np.ndarray = self.attributes.get_players_scores()
+        for player_idx, score in enumerate(scores):
+            text = self.font.render(f'player_{player_idx}:  {int(score)}  /  {Score.SCORE_LIMIT.value}', False, GameProperties.TEXT_COLOR.value)
+            self.window.blit(text, (0, GameProperties.TEXT_SIZE.value*player_idx))
 
     def _turn_on_human_render(self) -> None:
         self.window = pygame.display.set_mode([Screen.WIDTH.value, Screen.HEIGHT.value])
@@ -258,13 +270,13 @@ if __name__ == '__main__':
                         cur_agent = 0
         keys = pygame.key.get_pressed()
         if keys[pygame.K_w]:
-            actions[cur_agent] = MOVE_DICT_REVERSE[Move.UP]
+            actions[cur_agent] = MOVE_TO_NUMBER[Move.UP]
         if keys[pygame.K_s]:
-            actions[cur_agent] = MOVE_DICT_REVERSE[Move.DOWN]
+            actions[cur_agent] = MOVE_TO_NUMBER[Move.DOWN]
         if keys[pygame.K_a]:
-            actions[cur_agent] = MOVE_DICT_REVERSE[Move.LEFT]
+            actions[cur_agent] = MOVE_TO_NUMBER[Move.LEFT]
         if keys[pygame.K_d]:
-            actions[cur_agent] = MOVE_DICT_REVERSE[Move.RIGHT]
+            actions[cur_agent] = MOVE_TO_NUMBER[Move.RIGHT]
 
         if quit_game:
             break

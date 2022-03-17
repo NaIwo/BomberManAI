@@ -3,7 +3,7 @@ from typing import Tuple, List, Optional
 import pygame
 import numpy as np
 
-from game.config import GameProperties, PlayerProperties, Screen, MOVE_DICT_REVERSE, Move
+from game.config import GameProperties, PlayerProperties, Screen, MOVE_TO_NUMBER, Move
 from game.utils import get_image
 
 
@@ -36,11 +36,17 @@ class BaseElement(Sprite):
         self.rect.x = max(min(max_x, self.rect.x), 0)
         self.rect.y = max(min(max_y, self.rect.y), 0)
 
-    def get_current_move(self) -> np.ndarray:
-        return np.eye(Move.NUMBER_OF_MOVES.value + 1)[MOVE_DICT_REVERSE[self.current_move]+1]
+    def get_current_move_as_one_hot(self) -> np.ndarray:
+        """Current move in one hot manner.
+        We add 1 because of that 'NUMBER_OF_MOVES' do not take 'NOT_MOVING' state into account'"""
+        return np.eye(Move.NUMBER_OF_MOVES.value + 1)[MOVE_TO_NUMBER[self.current_move] + 1]
 
-    def __eq__(self, other) -> bool:
-        return self.name == other.name
+    def __eq__(self, other_idx) -> bool:
+        """
+        This help to search for existing Sprite by **UNIQUE** index instead of creating new object and compare
+        their properties. This can lead to increase performance. In graphic mode we only read images if it is necessary.
+        """
+        return self.idx == other_idx
 
     def __hash__(self):
         return self.idx
