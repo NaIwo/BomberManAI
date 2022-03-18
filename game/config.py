@@ -9,15 +9,12 @@ class GameProperties(Enum):
     NUM_PLAYERS = 2
     NUM_BOMBS = 12
     NUM_COINS = 3
-    FPS = 30
+    FPS = 100
     POINTS_CREATION_REPETITION_NUM = 50
     LOAD_IMAGES = True
     TEXT_SIZE = 13
     TEXT_COLOR = (0, 0, 0)
     ITERATION_LIMIT = None
-    #  You can set it by hand or set in ManualPolicy
-    HUMAN_PLAYER = False
-    HUMAN_IDX = 0
 
 
 class Screen(Enum):
@@ -75,17 +72,17 @@ class CoinProperties(Enum):
 
 
 NUMBER_TO_MOVE: Dict = {
-    -1: Move.NOT_MOVING,
     0: Move.LEFT,
     1: Move.UP,
     2: Move.RIGHT,
-    3: Move.DOWN
+    3: Move.DOWN,
+    4: Move.NOT_MOVING,
 }
 
 MOVE_TO_NUMBER: Dict = {
-    Move.NOT_MOVING: -1,
     Move.LEFT: 0,
     Move.UP: 1,
     Move.RIGHT: 2,
-    Move.DOWN: 3
+    Move.DOWN: 3,
+    Move.NOT_MOVING: 4
 }

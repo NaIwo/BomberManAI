@@ -5,7 +5,7 @@ import pygame
 import os
 from functools import lru_cache
 
-from config import Screen, GameProperties, PlayerProperties
+from .config import Screen, GameProperties, PlayerProperties
 
 
 class GenerationError(Exception):

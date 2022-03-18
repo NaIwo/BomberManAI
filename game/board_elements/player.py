@@ -1,6 +1,6 @@
 from typing import List, Tuple
 
-from game.config import PlayerProperties, Move, NUMBER_TO_MOVE, Score
+from game.config import PlayerProperties, Move, Score,  NUMBER_TO_MOVE, MOVE_TO_NUMBER
 from .base_element import BaseElement
 
 
@@ -25,7 +25,7 @@ class Player(BaseElement):
             self.score += Score.HIT_BY_BOMB.value
         self.freezing_time = freezing_time
 
-    def update_move(self, move: int = -1) -> None:
+    def update_move(self, move: int = MOVE_TO_NUMBER[Move.NOT_MOVING]) -> None:
         self.current_move = Move.NOT_MOVING if self.freezing_time > 0 else NUMBER_TO_MOVE[move]
 
     def update(self) -> None:

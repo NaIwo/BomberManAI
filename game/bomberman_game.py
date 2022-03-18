@@ -3,20 +3,23 @@ from pygame.sprite import Sprite, Group
 from typing import List, Dict, Union, Optional
 import numpy as np
 
-from game.config import Screen, GameProperties, MOVE_TO_NUMBER, Move, Score
+from game.config import Screen, GameProperties, Move, Score, MOVE_TO_NUMBER
 from game.board_elements import Player, Bomb, Coin
-from utils import RandomValues
+from game.utils import RandomValues
 
 
 class BomberManGameAttribute:
     def __init__(self, num_players: int, num_bombs: int, num_coins: int, score_limit: int,
-                 iteration_limit: Optional[int]):
+                 iteration_limit: Optional[int], human_player_idx: Optional[int]):
         self.num_players: int = num_players
         self.num_bombs: int = num_bombs
         self.num_coins: int = num_coins
         self.score_limit: int = score_limit
+        self.winner_idx: List = list()
         self.iteration_limit: Optional[int] = iteration_limit
+        self.human_player_idx: Optional[int] = human_player_idx
 
+        self.number_of_performed_iterations: int = 0
         self.human_render: bool = False
         self.closed: bool = False
         self.end_game: bool = False
@@ -40,9 +43,9 @@ class BomberManGameAttribute:
         9*number_of_bombs + 2*number_of_coins + 8*number_of_players
         """
         self._observations: Dict = {
-            'players': np.zeros(shape=(GameProperties.NUM_PLAYERS.value, 8)),
-            'bombs': np.zeros(shape=(GameProperties.NUM_BOMBS.value, 9)),
-            'coins': np.zeros(shape=(GameProperties.NUM_COINS.value, 2))
+            'players': np.zeros(shape=(self.num_players, 8)),
+            'bombs': np.zeros(shape=(self.num_bombs, 9)),
+            'coins': np.zeros(shape=(self.num_coins, 2))
         }
         self._score_idx: int = 7
 
@@ -50,8 +53,7 @@ class BomberManGameAttribute:
         self._update_bombs_attributes()
         self._update_coins_attributes()
 
-        if GameProperties.HUMAN_PLAYER.value:
-            self.set_human_player(agent_idx=GameProperties.HUMAN_IDX.value)
+        self.set_human_player_if_necessary()
 
     def _add_players(self) -> None:
         player_idx: int
@@ -62,17 +64,18 @@ class BomberManGameAttribute:
                                        player.score]
             self._observations['players'][player_idx] = np.array(local_observation)
 
-    def set_human_player(self, agent_idx: Optional[int] = None) -> None:
-        self.players_list.sprites()[agent_idx].set_as_human_player()
+    def set_human_player_if_necessary(self) -> None:
+        if self.human_player_idx is not None:
+            self.players_list.sprites()[self.human_player_idx].set_as_human_player()
 
     def update(self) -> None:
+        if self.iteration_limit:
+            self.number_of_performed_iterations += 1
+            self.end_game = (self.number_of_performed_iterations >= self.iteration_limit) or self.end_game
+
         self._update_players_observations()
         self._update_bombs_attributes()
         self._update_coins_attributes()
-
-        if self.iteration_limit:
-            self.iteration_limit -= 1
-            self.end_game = (self.iteration_limit <= 0) or self.end_game
 
     def _update_players_observations(self) -> None:
         player_idx: int
@@ -81,11 +84,13 @@ class BomberManGameAttribute:
             local_observation: List = [player.rect.centerx, player.rect.centery, *player.get_current_move_as_one_hot(),
                                        player.score]
             self._observations['players'][player_idx] = np.array(local_observation)
-            self.end_game = (player.score == Score.SCORE_LIMIT.value) or self.end_game
+            if player.score == Score.SCORE_LIMIT.value:
+                self.end_game = True
+                self.winner_idx.append(player_idx)
 
     def _update_bombs_attributes(self):
         bomb_idx: int
-        for bomb_idx in range(GameProperties.NUM_BOMBS.value):
+        for bomb_idx in range(self.num_bombs):
             bomb: Union[Bomb, Sprite]
             if not self.bombs_list.has(bomb_idx):
                 bomb = Bomb(*RandomValues.get_x_y_without_overlapping(self.get_all_points()), idx=bomb_idx)
@@ -98,7 +103,7 @@ class BomberManGameAttribute:
 
     def _update_coins_attributes(self):
         coin_idx: int
-        for coin_idx in range(GameProperties.NUM_COINS.value):
+        for coin_idx in range(self.num_coins):
             coin: Union[Coin, Sprite]
             if not self.coins_list.has(coin_idx):
                 coin = Coin(*RandomValues.get_x_y_without_overlapping(self.get_all_points()), idx=coin_idx)
@@ -134,10 +139,8 @@ class BomberManGameAttribute:
     def get_players_scores(self) -> np.ndarray:
         return self._observations['players'][:, self._score_idx]
 
-    @staticmethod
-    def get_number_of_features() -> int:
-        return (GameProperties.NUM_PLAYERS.value * 8) + (GameProperties.NUM_BOMBS.value * 9) + (
-                GameProperties.NUM_COINS.value * 2)
+    def get_number_of_features(self) -> int:
+        return (self.num_players * 8) + (self.num_bombs * 9) + (self.num_coins * 2)
 
 
 class BomberManGame:
@@ -145,10 +148,11 @@ class BomberManGame:
                  num_bombs: int = GameProperties.NUM_BOMBS.value,
                  num_coins: int = GameProperties.NUM_COINS.value,
                  score_limit: int = Score.SCORE_LIMIT.value,
-                 iteration_limit: Optional[int] = GameProperties.ITERATION_LIMIT.value):
+                 iteration_limit: Optional[int] = GameProperties.ITERATION_LIMIT.value,
+                 human_player_idx: Optional[int] = None):
         self.attributes = BomberManGameAttribute(num_players=num_players, num_bombs=num_bombs,
                                                  num_coins=num_coins, score_limit=score_limit,
-                                                 iteration_limit=iteration_limit)
+                                                 iteration_limit=iteration_limit, human_player_idx=human_player_idx)
 
         pygame.init()
         pygame.font.init()
@@ -164,11 +168,17 @@ class BomberManGame:
         player: Sprite
         return [player.name for player in self.attributes.players_list]
 
-    def update_board_info_by_player_action(self, agent_idx: int, action: int):
+    @property
+    def score_limit(self) -> int:
+        return self.attributes.score_limit
+
+    def perform_action_and_get_reward(self, agent_idx: int, action: int) -> int:
         agent: Sprite = self.attributes.players_list.sprites()[agent_idx]
+        score: int = agent.score
         agent.update_move(action)
         self._handle_bombs_events(agent, action)
         self._handle_coins_events(agent)
+        return agent.score - score
 
     def _handle_bombs_events(self, agent: Sprite, action: int):
         self._agent_interaction(agent, action)
@@ -181,7 +191,7 @@ class BomberManGame:
             if bomb.time_to_explosion > 0:
                 bomb.update_move_information(action)
             elif bomb.is_during_explosion():
-                agent.decrease_score_and_freeze(freezing_time=bomb.time_to_end_explosion())
+                agent.decrease_score_and_freeze(freezing_time=bomb.time_to_end_explosion() + 1)
 
     def _bombs_interactions(self) -> None:
         bombs_and_bombs: Dict = pygame.sprite.groupcollide(self.attributes.bombs_list, self.attributes.bombs_list,
@@ -236,6 +246,9 @@ class BomberManGame:
     def get_number_of_possible_moves() -> int:
         return Move.NUMBER_OF_MOVES.value + 1
 
+    def get_winners_idx(self) -> List[int]:
+        return self.attributes.winner_idx
+
     def is_end_game(self) -> bool:
         return self.attributes.end_game
 
@@ -284,51 +297,5 @@ class BomberManGame:
                                                  num_bombs=self.attributes.num_bombs,
                                                  num_coins=self.attributes.num_coins,
                                                  score_limit=self.attributes.score_limit,
-                                                 iteration_limit=self.attributes.iteration_limit)
-
-
-if __name__ == '__main__':
-    bm = BomberManGame()
-    # bm.render('human')
-
-    bm.reset()
-    done = False
-    clock = pygame.time.Clock()
-    cur_agent = 0
-    quit_game = 0
-    cur_agent = GameProperties.HUMAN_IDX.value
-
-    while not done:
-        clock.tick(GameProperties.FPS.value)
-        actions = [-1 for x in range(len(bm.players))]
-
-        for event in pygame.event.get():
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    quit_game = 1
-                    break
-                if event.key == pygame.K_BACKSPACE:
-                    bm.reset()
-                if event.key == pygame.K_c:
-                    cur_agent += 1
-                    if cur_agent == len(bm.players):
-                        cur_agent = 0
-        keys = pygame.key.get_pressed()
-        if keys[pygame.K_w]:
-            actions[cur_agent] = MOVE_TO_NUMBER[Move.UP]
-        if keys[pygame.K_s]:
-            actions[cur_agent] = MOVE_TO_NUMBER[Move.DOWN]
-        if keys[pygame.K_a]:
-            actions[cur_agent] = MOVE_TO_NUMBER[Move.LEFT]
-        if keys[pygame.K_d]:
-            actions[cur_agent] = MOVE_TO_NUMBER[Move.RIGHT]
-
-        if quit_game:
-            break
-        for agent_idx, action in enumerate(actions):
-            bm.update_board_info_by_player_action(agent_idx, action)
-        bm.update()
-        bm.render()
-        # done = any(env.dones.values())
-
-    bm.close()
+                                                 iteration_limit=self.attributes.iteration_limit,
+                                                 human_player_idx=self.attributes.human_player_idx)

@@ -43,7 +43,7 @@ class BaseElement(Sprite):
     def get_current_move_as_one_hot(self) -> np.ndarray:
         """Current move in one hot manner.
         We add 1 because of that 'NUMBER_OF_MOVES' do not take 'NOT_MOVING' state into account'"""
-        return np.eye(Move.NUMBER_OF_MOVES.value + 1)[MOVE_TO_NUMBER[self.current_move] + 1]
+        return np.eye(Move.NUMBER_OF_MOVES.value + 1)[MOVE_TO_NUMBER[self.current_move]]
 
     def __eq__(self, other_idx) -> bool:
         """
