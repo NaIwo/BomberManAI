@@ -3,6 +3,7 @@ from typing import Tuple, List, Optional
 import numpy as np
 import pygame
 import os
+from functools import lru_cache
 
 from config import Screen, GameProperties, PlayerProperties
 
@@ -33,6 +34,7 @@ class RandomValues:
                               'or increasing the number of generation attempts or change the map parameters.')
 
 
+@lru_cache(maxsize=256)
 def get_image(image_path: str, width: float, height: float) -> Optional[pygame.Surface]:
     cwd: str = os.path.dirname(os.path.dirname(__file__))
     image: pygame.Surface = pygame.image.load(os.path.join(cwd, image_path))

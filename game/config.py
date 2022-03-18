@@ -7,8 +7,6 @@ base_image_path: str = os.path.join('game', 'board_elements', 'images')
 
 class GameProperties(Enum):
     NUM_PLAYERS = 2
-    HUMAN_PLAYER = True
-    HUMAN_IDX = 0
     NUM_BOMBS = 12
     NUM_COINS = 3
     FPS = 30
@@ -16,6 +14,10 @@ class GameProperties(Enum):
     LOAD_IMAGES = True
     TEXT_SIZE = 13
     TEXT_COLOR = (0, 0, 0)
+    ITERATION_LIMIT = None
+    #  You can set it by hand or set in ManualPolicy
+    HUMAN_PLAYER = False
+    HUMAN_IDX = 0
 
 
 class Screen(Enum):

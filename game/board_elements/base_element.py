@@ -21,7 +21,11 @@ class BaseElement(Sprite):
     def _update_properties(self, coordinates_tuple, shape_properties: List, color: Tuple):
         self.rect = pygame.Rect(*coordinates_tuple)
         self.image = pygame.Surface(shape_properties)
-        self.image.fill(color)
+        self._update_color(color)
+
+    def _update_color(self, color: Tuple) -> None:
+        if not GameProperties.LOAD_IMAGES.value:
+            self.image.fill(color)
 
     def _update_image(self, image_path: str) -> None:
         if GameProperties.LOAD_IMAGES.value:
