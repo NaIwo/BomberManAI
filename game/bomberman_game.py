@@ -4,13 +4,14 @@ from pygame.sprite import Sprite, Group
 from game.config import Screen, GameProperties, MOVE_TO_NUMBER, Move, Score
 from game.board_elements import Player, Bomb, Coin
 from utils import RandomValues
-from typing import List, Dict, Union
+from typing import List, Dict, Union, Optional
 import numpy as np
 
 
 class BomberManGameAttribute:
     def __init__(self):
         self.human_render: bool = False
+        self.closed: bool = False
         self.end_game: bool = False
         self.players_list: Group = Group()
         self.bombs_list: Group = Group()
@@ -18,7 +19,8 @@ class BomberManGameAttribute:
 
         """
         Observation:
-        [player x; player y; player move direction; player score] for each player
+        [player x; player y; player move direction; player score] for each player - 
+                                                    current agent requesting observations will be listed first
         [bomb x; bomb y; bomb move direction; is during explosion; speed] for each bomb
         [coin x; coin y] for each coin
 
@@ -105,9 +107,15 @@ class BomberManGameAttribute:
                 points.append(point)
         return points
 
-    def get_observations(self) -> np.ndarray:
+    def get_observations(self, agent_idx: int) -> np.ndarray:
+        """
+        First we place an agent requesting for observation
+        """
+        current_agent_obs: np.ndarray = self._observations['players'][agent_idx]
+        rest_agents_obs: np.ndarray = np.delete(self._observations['players'], agent_idx, axis=0)
         return np.concatenate((
-            self._observations['players'].flatten(),
+            np.concatenate((current_agent_obs.flatten(),
+                            rest_agents_obs.flatten())),
             self._observations['bombs'].flatten(),
             self._observations['coins'].flatten()
         ))
@@ -197,8 +205,8 @@ class BomberManGame:
 
         self.attributes.update()
 
-    def get_observations(self) -> np.ndarray:
-        return self.attributes.get_observations()
+    def get_observations(self, agent_idx: int) -> np.ndarray:
+        return self.attributes.get_observations(agent_idx)
 
     def get_number_of_features(self) -> int:
         return self.attributes.get_number_of_features()
@@ -206,13 +214,17 @@ class BomberManGame:
     def is_end_game(self) -> bool:
         return self.attributes.end_game
 
-    def render(self, mode: str = 'human') -> None:
+    def render(self, mode: str = 'human') -> Optional[np.ndarray]:
         if mode == 'human' and not self.attributes.human_render:
             self._turn_on_human_render()
             self.attributes.human_render = True
 
         if mode == 'human' and self.attributes.human_render:
             self._draw_elements()
+
+        if mode == 'rgb_array':
+            board: np.ndarray = np.array(pygame.surfarray.pixels3d(self.window))
+            return np.transpose(board, axes=(1, 0, 2))
 
     def _draw_elements(self) -> None:
         self.window.fill(Screen.BACKGROUND_COLOR.value)
@@ -234,9 +246,12 @@ class BomberManGame:
         pygame.display.flip()
 
     def close(self) -> None:
-        self.window = pygame.Surface((Screen.WIDTH.value, Screen.HEIGHT.value))
-        pygame.event.pump()
-        pygame.display.quit()
+        if self.attributes.human_render and (not self.attributes.closed):
+            self.attributes.human_render = False
+            pygame.event.pump()
+            pygame.display.quit()
+        if not self.attributes.closed:
+            self.attributes.closed = True
 
     def reset(self) -> None:
         self.attributes = BomberManGameAttribute()
