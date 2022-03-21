@@ -6,8 +6,8 @@ from pettingzoo import ParallelEnv
 from pettingzoo.utils import wrappers
 from pettingzoo.utils import parallel_to_aec
 
-from game.bomberman_game import BomberManGame
-from game.config import GameProperties
+from src.game.bomberman_game import BomberManGame
+from src.game.config import GameProperties
 
 
 def env(**kwargs):
@@ -113,5 +113,4 @@ class parallel_env(ParallelEnv):
 
         if env_done:
             self.agents = []
-
         return observations, rewards, dones, infos

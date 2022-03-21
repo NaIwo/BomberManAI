@@ -3,9 +3,9 @@ from pygame.sprite import Sprite, Group
 from typing import List, Dict, Union, Optional
 import numpy as np
 
-from game.config import Screen, GameProperties, Move, Score, MOVE_TO_NUMBER
-from game.board_elements import Player, Bomb, Coin
-from game.utils import RandomValues
+from src.game.config import Screen, GameProperties, Move, Score, MOVE_TO_NUMBER, NUMBER_TO_MOVE
+from src.game.board_elements import Player, Bomb, Coin
+from src.game.utils import RandomValues
 
 
 class BomberManGameAttribute:
@@ -178,7 +178,7 @@ class BomberManGame:
         agent.update_move(action)
         self._handle_bombs_events(agent, action)
         self._handle_coins_events(agent)
-        return agent.score - score
+        return (agent.score - score) + (Score.NOT_MOVING_PENALTY.value * (NUMBER_TO_MOVE[action] == Move.NOT_MOVING))
 
     def _handle_bombs_events(self, agent: Sprite, action: int):
         self._agent_interaction(agent, action)

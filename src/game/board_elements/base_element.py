@@ -3,8 +3,8 @@ from typing import Tuple, List, Optional
 import pygame
 import numpy as np
 
-from game.config import GameProperties, PlayerProperties, Screen, MOVE_TO_NUMBER, Move
-from game.utils import get_image
+from src.game.config import GameProperties, PlayerProperties, Screen, MOVE_TO_NUMBER, Move
+from src.game.utils import get_image
 
 
 class BaseElement(Sprite):

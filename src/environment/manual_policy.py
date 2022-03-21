@@ -1,7 +1,7 @@
 import numpy as np
 import pygame
 
-from game.config import Move, MOVE_TO_NUMBER
+from src.game.config import Move, MOVE_TO_NUMBER
 
 
 class ManualPolicy:

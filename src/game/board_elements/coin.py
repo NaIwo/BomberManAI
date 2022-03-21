@@ -1,6 +1,6 @@
 from typing import Tuple, List
 
-from game.config import CoinProperties
+from src.game.config import CoinProperties
 from .base_element import BaseElement
 
 

@@ -9,7 +9,7 @@ class GameProperties(Enum):
     NUM_PLAYERS = 2
     NUM_BOMBS = 12
     NUM_COINS = 3
-    FPS = 100
+    FPS = 30
     POINTS_CREATION_REPETITION_NUM = 50
     LOAD_IMAGES = True
     TEXT_SIZE = 13
@@ -37,6 +37,7 @@ class Score(Enum):
     SCORE_LIMIT = 5
     PICKED_COIN = 1
     HIT_BY_BOMB = -1
+    NOT_MOVING_PENALTY = -0.001
 
 
 class PlayerProperties(Enum):

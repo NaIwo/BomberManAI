@@ -1,6 +1,6 @@
 from typing import Tuple, List
 
-from game.config import BombProperties, Move, Screen, NUMBER_TO_MOVE, MOVE_TO_NUMBER
+from src.game.config import BombProperties, Move, Screen, NUMBER_TO_MOVE, MOVE_TO_NUMBER
 from .base_element import BaseElement
 
 

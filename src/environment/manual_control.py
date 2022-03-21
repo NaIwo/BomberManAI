@@ -1,10 +1,10 @@
 import pygame
 
-from game.config import GameProperties, MOVE_TO_NUMBER, Move
+from src.game.config import GameProperties, MOVE_TO_NUMBER, Move
 
 
 def manual_control(**kwargs) -> None:
-    from game.bomberman_game import BomberManGame
+    from src.game.bomberman_game import BomberManGame
 
     human_idx: int = 0
 
