@@ -6,8 +6,8 @@ from pettingzoo import ParallelEnv
 from pettingzoo.utils import wrappers
 from pettingzoo.utils import parallel_to_aec
 
-from src.game.bomberman_game import BomberManGame
-from src.game.config import GameProperties
+from bomberman.game.bomberman_game import BomberManGame
+from bomberman.game.config import GameProperties
 
 
 def env(**kwargs):
@@ -109,7 +109,7 @@ class parallel_env(ParallelEnv):
             observations[agent_name] = self.game.get_observations(agent_idx=agent_idx)
             dones[agent_name] = env_done
             infos[agent_name] = {}
-            rewards[agent_name] += (env_done * self.game.score_limit) * (1 if agent_idx in winners_list else -1)
+            #rewards[agent_name] += (env_done * self.game.score_limit) * (1 if agent_idx in winners_list else -1)
 
         if env_done:
             self.agents = []

@@ -1,46 +1,16 @@
-from src import bomberman
+from bomberman import parallel_env
+from bomberman.training.RL.custom_model import BomberModel
 
 from ray import tune
 from ray.rllib.models import ModelCatalog
 from ray.tune.registry import register_env
 from ray.rllib.env.wrappers.pettingzoo_env import ParallelPettingZooEnv
-from ray.rllib.models.torch.torch_modelv2 import TorchModelV2
+from ray.rllib.policy.policy import PolicySpec
 from ray import shutdown
-from torch import nn
-from typing import Tuple
-
-
-class BomberModel(TorchModelV2, nn.Module):
-    def __init__(self, obs_space, action_space, num_outputs, *args, **kwargs):
-        TorchModelV2.__init__(self, obs_space, action_space, num_outputs, *args, **kwargs)
-        nn.Module.__init__(self)
-        self.model = nn.Sequential(
-            nn.BatchNorm1d(obs_space.shape[0]),
-            nn.Linear(obs_space.shape[0], 100),
-            nn.ReLU(),
-            nn.BatchNorm1d(100),
-            nn.Linear(100, 50),
-            nn.ReLU(),
-            nn.BatchNorm1d(50),
-            nn.Linear(50, 20),
-            nn.ReLU(),
-        )
-        self.policy_fn = nn.Linear(20, num_outputs)
-        self.value_fn = nn.Linear(20, 1)
-
-    def forward(self, input_dict, state, seq_lens):
-        self._query_model(input_dict)
-        return self.policy_fn(self.current_model_out), state
-
-    def value_function(self):
-        return self.value_fn(self.current_model_out).flatten()
-
-    def _query_model(self, input_dict):
-        self.current_model_out = self.model(input_dict["obs"])
 
 
 def env_creator(args):
-    return bomberman.parallel_env(num_players=4, num_bombs=12, num_coins=4, score_limit=7, iteration_limit=1000)
+    return parallel_env(num_players=1, num_bombs=12, num_coins=4, score_limit=7, iteration_limit=1000)
 
 
 if __name__ == "__main__":
@@ -56,19 +26,14 @@ if __name__ == "__main__":
 
     ModelCatalog.register_custom_model("BomberModel", BomberModel)
 
+    config = {
+        "model": {
+            "custom_model": "BomberModel",
+        },
+        "gamma": 0.99,
+    }
 
-    def gen_policy() -> Tuple:
-        config = {
-            "model": {
-                "custom_model": "BomberModel",
-            },
-            "gamma": 0.99,
-        }
-        return None, observation_space, act_space, config
-
-
-    policies = {"policy_0": gen_policy()}
-
+    policies = {"policy_0": PolicySpec(None, observation_space, act_space, config)}
     policy_ids = list(policies.keys())
 
     tune.run(
@@ -104,7 +69,7 @@ if __name__ == "__main__":
             "entropy_coeff": 0.1,
             'vf_loss_coeff': 0.25,
 
-            "sgd_minibatch_size": 64,
+            "sgd_minibatch_size": 128,
             "num_sgd_iter": 10,  # epoc
             'rollout_fragment_length': 512,
             "train_batch_size": -1,
@@ -114,7 +79,7 @@ if __name__ == "__main__":
             "multiagent": {
                 "policies": policies,
                 "policy_mapping_fn": (
-                    lambda agent_id: policy_ids[0]),
+                    lambda agent_id, episode, worker, **kwargs: policy_ids[0]),
             },
         },
     )

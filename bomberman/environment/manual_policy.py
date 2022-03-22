@@ -1,7 +1,7 @@
 import numpy as np
 import pygame
 
-from src.game.config import Move, MOVE_TO_NUMBER
+from bomberman.game.config import Move, MOVE_TO_NUMBER
 
 
 class ManualPolicy:
@@ -19,13 +19,8 @@ class ManualPolicy:
 
         action: int = self.default_action
 
-        for event in pygame.event.get():
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    exit()
+        self.check_for_special_actions(self.env)
 
-                elif event.key == pygame.K_BACKSPACE:
-                    self.env.reset()
         keys = pygame.key.get_pressed()
         if keys[pygame.K_w]:
             action = MOVE_TO_NUMBER[Move.UP]
@@ -37,3 +32,12 @@ class ManualPolicy:
             action = MOVE_TO_NUMBER[Move.RIGHT]
 
         return action
+
+    @staticmethod
+    def check_for_special_actions(env):
+        for event in pygame.event.get():
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    exit()
+                elif event.key == pygame.K_BACKSPACE:
+                    env.reset()

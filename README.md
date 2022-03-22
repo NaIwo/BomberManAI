@@ -11,7 +11,7 @@ You can use bombs to hurt your opponent and decrease his score.
 The limit of game is number of episodes or score limit. 
 The winner is the player who has collected the most coins.
 
-![Alt Text](src/game/board_elements/images/visualization.gif)
+![Alt Text](bomberman/game/board_elements/images/visualization.gif)
 
 # Requirements
 
@@ -37,15 +37,19 @@ In above file you can find all game settings. You can manipulate them to adjust
 the environment.
 
 ## Examples
-```python
-from src.examples.manual_policy import manual_policy
-manual_policy()
-    
-from src.examples.manual_control import manual_control
-manual_control()
 
-from src.examples.random_simulation import random_simulation
-random_simulation()
+```python
+from bomberman.usage.manual_policy import run_manual_policy
+
+run_manual_policy()
+
+from bomberman.usage.manual_control import run_manual_control
+
+run_manual_control()
+
+from bomberman.usage.random_simulation import run_random_simulation
+
+run_random_simulation()
 ```
 
 

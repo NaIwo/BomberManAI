@@ -37,7 +37,6 @@ class Score(Enum):
     SCORE_LIMIT = 5
     PICKED_COIN = 1
     HIT_BY_BOMB = -1
-    NOT_MOVING_PENALTY = -0.001
 
 
 class PlayerProperties(Enum):

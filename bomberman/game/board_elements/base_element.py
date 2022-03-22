@@ -3,8 +3,8 @@ from typing import Tuple, List, Optional
 import pygame
 import numpy as np
 
-from src.game.config import GameProperties, PlayerProperties, Screen, MOVE_TO_NUMBER, Move
-from src.game.utils import get_image
+from bomberman.game.config import GameProperties, PlayerProperties, Screen, MOVE_TO_NUMBER, Move
+from bomberman.game.utils import get_image
 
 
 class BaseElement(Sprite):

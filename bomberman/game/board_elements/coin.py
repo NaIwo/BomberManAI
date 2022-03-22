@@ -1,6 +1,6 @@
 from typing import Tuple, List
 
-from src.game.config import CoinProperties
+from bomberman.game.config import CoinProperties
 from .base_element import BaseElement
 
 
