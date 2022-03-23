@@ -187,7 +187,7 @@ class BomberManGame:
         if diff > 0:
             reward += Rewards.PICKED_COIN.value
         elif diff < 0:
-            reward += Rewards.PICKED_COIN.value
+            reward += Rewards.HIT_BY_BOMB.value
         return reward
 
     def _handle_bombs_events(self, agent: Sprite, action: int):

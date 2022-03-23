@@ -11,7 +11,7 @@ from pathlib import Path
 import pickle5 as pickle
 
 # Example. Change it for your purpose.
-checkpoint_path = 'RL/ray_results/ bomberman/PPO/PPO_bomberman_b098e_00000_0_2022-03-23_17-31-28/checkpoint_000520/checkpoint-520'
+checkpoint_path = 'RL/ray_results/ bomberman/PPO/PPO_bomberman_b098e_00000_0_2022-03-23_17-31-28/checkpoint_000120/checkpoint-120'
 params_path = Path(checkpoint_path).parent.parent / "params.pkl"
 
 ModelCatalog.register_custom_model("BomberModel", BomberModel)
