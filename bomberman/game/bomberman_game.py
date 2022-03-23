@@ -29,8 +29,7 @@ class BomberManGameAttribute:
 
         """
         Observation:
-        [player x; player y; player move direction; player score] for each player - 
-                                                    current agent requesting observations will be listed first
+        [player x; player y; player move direction; player score] for each player
         [bomb x; bomb y; bomb move direction; is during explosion; speed] for each bomb
         [coin x; coin y] for each coin
 
@@ -41,13 +40,15 @@ class BomberManGameAttribute:
         finally:
         
         9*number_of_bombs + 2*number_of_coins + 8*number_of_players
+        
+        We will also add requesting player idx as one-hot, but only in 'get_observations' function'
         """
         self._observations: Dict = {
             'players': np.zeros(shape=(self.num_players, 8)),
             'bombs': np.zeros(shape=(self.num_bombs, 9)),
             'coins': np.zeros(shape=(self.num_coins, 2))
         }
-        self._score_idx: int = 7
+        self._score_idx: int = -1
 
         self._add_players()
         self._update_bombs_attributes()
@@ -124,23 +125,24 @@ class BomberManGameAttribute:
         return points
 
     def get_observations(self, agent_idx: int) -> np.ndarray:
-        """
-        First we place an agent requesting for observation
-        """
-        current_agent_obs: np.ndarray = self._observations['players'][agent_idx]
-        rest_agents_obs: np.ndarray = np.delete(self._observations['players'], agent_idx, axis=0)
         return np.concatenate((
-            np.concatenate((current_agent_obs.flatten(),
-                            rest_agents_obs.flatten())),
+            self._get_player_idx_as_one_hot(agent_idx),
+            self._observations['players'].flatten(),
             self._observations['bombs'].flatten(),
             self._observations['coins'].flatten()
         ))
+
+    def _get_player_idx_as_one_hot(self, agent_idx: int) -> np.ndarray:
+        return np.eye(self.num_players)[agent_idx]
 
     def get_players_scores(self) -> np.ndarray:
         return self._observations['players'][:, self._score_idx]
 
     def get_number_of_features(self) -> int:
-        return (self.num_players * 8) + (self.num_bombs * 9) + (self.num_coins * 2)
+        """
+        self.num_players - one-hot encoding of player idx
+        """
+        return self.num_players + (self.num_players * 8) + (self.num_bombs * 9) + (self.num_coins * 2)
 
 
 class BomberManGame:
