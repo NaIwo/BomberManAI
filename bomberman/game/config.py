@@ -39,6 +39,12 @@ class Score(Enum):
     HIT_BY_BOMB = -1
 
 
+class Rewards(Enum):
+    PICKED_COIN = 5
+    HIT_BY_BOMB = -1
+    EACH_ITERATION_PENALTY = -0.005
+
+
 class PlayerProperties(Enum):
     BOT_PLAYER_IMAGE_PATH = os.path.join(base_image_path, 'player.png')
     HUMAN_PLAYER_IMAGE_PATH = os.path.join(base_image_path, 'human_player.png')

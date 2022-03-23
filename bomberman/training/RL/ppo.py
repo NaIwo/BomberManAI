@@ -6,11 +6,12 @@ from ray.rllib.models import ModelCatalog
 from ray.tune.registry import register_env
 from ray.rllib.env.wrappers.pettingzoo_env import ParallelPettingZooEnv
 from ray.rllib.policy.policy import PolicySpec
+from ray.rllib.examples.policy.random_policy import RandomPolicy
 from ray import shutdown
 
 
 def env_creator(args):
-    return parallel_env(num_players=1, num_bombs=12, num_coins=4, score_limit=7, iteration_limit=1000)
+    return parallel_env(num_players=4, num_bombs=5, num_coins=5, score_limit=10, iteration_limit=1000)
 
 
 if __name__ == "__main__":
@@ -29,12 +30,21 @@ if __name__ == "__main__":
     config = {
         "model": {
             "custom_model": "BomberModel",
-        },
-        "gamma": 0.99,
+        }
     }
 
-    policies = {"policy_0": PolicySpec(None, observation_space, act_space, config)}
-    policy_ids = list(policies.keys())
+
+    def policy_mapping_fn(agent_id, episode, worker, **kwargs):
+        agent_idx = int(agent_id[-1])
+        return "learning_policy" if episode.episode_id % 2 == agent_idx % 2 else "random_policy"
+
+    # policies = {"policy_0": PolicySpec(None, observation_space, act_space, config)}
+    # policy_ids = list(policies.keys())
+
+    policies = {
+        "learning_policy": PolicySpec(None, observation_space, act_space, config),
+        "random_policy": PolicySpec(policy_class=RandomPolicy)
+    }
 
     tune.run(
         "PPO",
@@ -56,30 +66,25 @@ if __name__ == "__main__":
             "compress_observations": False,
             "batch_mode": 'truncate_episodes',
 
-            # 'use_critic': True,
-            'use_gae': True,
-            "lambda": 0.9,
-
-            "gamma": .99,
-
-            # "kl_coeff": 0.001,
-            # "kl_target": 1000.,
-            "clip_param": 0.4,
-            'grad_clip': 40,
-            "entropy_coeff": 0.1,
-            'vf_loss_coeff': 0.25,
-
-            "sgd_minibatch_size": 128,
-            "num_sgd_iter": 10,  # epoc
-            'rollout_fragment_length': 512,
-            "train_batch_size": -1,
-            'lr': 0.0001,
+            'lr': 0.0003,
+            'lambda': 0.95,
+            'gamma': 0.99,
+            'sgd_minibatch_size': 256,
+            'train_batch_size': 4000,
+            'clip_param': 0.2,
+            # For running in editor, just use one Worker (we only have
+            # one Unity running)!
+            'num_sgd_iter': 20,
+            'rollout_fragment_length': 200,
+            'no_done_at_end': True,
+            'evaluation_interval': 0,
+            'evaluation_num_episodes': 1,
 
             # Method specific
             "multiagent": {
                 "policies": policies,
-                "policy_mapping_fn": (
-                    lambda agent_id, episode, worker, **kwargs: policy_ids[0]),
-            },
-        },
+                "policy_mapping_fn": policy_mapping_fn,
+                "policies_to_train": ["learning_policy"]
+            }
+        }
     )

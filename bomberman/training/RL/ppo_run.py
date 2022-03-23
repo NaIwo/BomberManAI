@@ -11,14 +11,14 @@ from pathlib import Path
 import pickle5 as pickle
 
 # Example. Change it for your purpose.
-checkpoint_path = 'RL/ray_results/ bomberman/PPO/PPO_bomberman_46476_00000_0_2022-03-22_12-29-02/checkpoint_000840/checkpoint-840'
+checkpoint_path = 'RL/ray_results/ bomberman/PPO/PPO_bomberman_b098e_00000_0_2022-03-23_17-31-28/checkpoint_000520/checkpoint-520'
 params_path = Path(checkpoint_path).parent.parent / "params.pkl"
 
 ModelCatalog.register_custom_model("BomberModel", BomberModel)
 
 
 def env_creator():
-    return raw_env(num_players=1, num_bombs=12, num_coins=4, score_limit=7, iteration_limit=1000)
+    return raw_env(num_players=4, num_bombs=5, num_coins=5, score_limit=10, iteration_limit=1000)
 
 
 if __name__ == '__main__':
@@ -37,4 +37,4 @@ if __name__ == '__main__':
     PPOagent.restore(checkpoint_path)
 
     run_manual_policy(environment=env,
-                      agents_policy=lambda obs: PPOagent.get_policy("policy_0").compute_single_action(obs)[0])
+                      agents_policy=lambda obs: PPOagent.get_policy("learning_policy").compute_single_action(obs)[0])

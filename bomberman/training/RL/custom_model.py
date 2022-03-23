@@ -7,18 +7,25 @@ class BomberModel(TorchModelV2, nn.Module):
         TorchModelV2.__init__(self, obs_space, action_space, num_outputs, *args, **kwargs)
         nn.Module.__init__(self)
         self.model = nn.Sequential(
-            nn.BatchNorm1d(obs_space.shape[0]),
             nn.Linear(obs_space.shape[0], 100),
             nn.ReLU(),
-            nn.BatchNorm1d(100),
             nn.Linear(100, 50),
             nn.ReLU(),
-            nn.BatchNorm1d(50),
-            nn.Linear(50, 20),
+            nn.Linear(50, 25),
+            nn.ReLU(),
+            nn.Linear(25, 10),
             nn.ReLU(),
         )
-        self.policy_fn = nn.Linear(20, num_outputs)
-        self.value_fn = nn.Linear(20, 1)
+        self.policy_fn = nn.Sequential(
+            nn.Linear(10, 10),
+            nn.ReLU(),
+            nn.Linear(10, num_outputs)
+        )
+        self.value_fn = nn.Sequential(
+            nn.Linear(10, 10),
+            nn.ReLU(),
+            nn.Linear(10, 1)
+        )
 
     def forward(self, input_dict, state, seq_lens):
         self._query_model(input_dict)

@@ -3,7 +3,7 @@ from pygame.sprite import Sprite, Group
 from typing import List, Dict, Union, Optional
 import numpy as np
 
-from bomberman.game.config import Screen, GameProperties, Move, Score, MOVE_TO_NUMBER, NUMBER_TO_MOVE
+from bomberman.game.config import Screen, GameProperties, Move, Score, MOVE_TO_NUMBER, Rewards
 from bomberman.game.board_elements import Player, Bomb, Coin
 from bomberman.game.utils import RandomValues
 
@@ -84,7 +84,7 @@ class BomberManGameAttribute:
             local_observation: List = [player.rect.centerx, player.rect.centery, *player.get_current_move_as_one_hot(),
                                        player.score]
             self._observations['players'][player_idx] = np.array(local_observation)
-            if player.score == Score.SCORE_LIMIT.value:
+            if player.score == self.score_limit:
                 self.end_game = True
                 self.winner_idx.append(player_idx)
 
@@ -172,13 +172,23 @@ class BomberManGame:
     def score_limit(self) -> int:
         return self.attributes.score_limit
 
-    def perform_action_and_get_reward(self, agent_idx: int, action: int) -> int:
+    def perform_action_and_get_reward(self, agent_idx: int, action: int) -> float:
         agent: Sprite = self.attributes.players_list.sprites()[agent_idx]
         score: int = agent.score
         agent.update_move(action)
         self._handle_bombs_events(agent, action)
         self._handle_coins_events(agent)
-        return agent.score - score
+        diff: int = agent.score - score
+        return self._get_reward(diff)
+
+    @staticmethod
+    def _get_reward(diff: int) -> float:
+        reward: float = Rewards.EACH_ITERATION_PENALTY.value
+        if diff > 0:
+            reward += Rewards.PICKED_COIN.value
+        elif diff < 0:
+            reward += Rewards.PICKED_COIN.value
+        return reward
 
     def _handle_bombs_events(self, agent: Sprite, action: int):
         self._agent_interaction(agent, action)
@@ -275,7 +285,7 @@ class BomberManGame:
     def render_text(self) -> None:
         scores: np.ndarray = self.attributes.get_players_scores()
         for player_idx, score in enumerate(scores):
-            text = self.font.render(f'player_{player_idx}:  {int(score)}  /  {Score.SCORE_LIMIT.value}', False,
+            text = self.font.render(f'player_{player_idx}:  {int(score)}  /  {self.attributes.score_limit}', False,
                                     GameProperties.TEXT_COLOR.value)
             self.window.blit(text, (0, GameProperties.TEXT_SIZE.value * player_idx))
 
