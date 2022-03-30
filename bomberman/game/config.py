@@ -7,8 +7,8 @@ base_image_path: str = os.path.join('game', 'board_elements', 'images')
 
 class GameProperties(Enum):
     NUM_PLAYERS = 2
-    NUM_BOMBS = 12
-    NUM_COINS = 3
+    NUM_BOMBS = 3
+    NUM_COINS = 6
     FPS = 30
     POINTS_CREATION_REPETITION_NUM = 50
     LOAD_IMAGES = True
@@ -18,8 +18,8 @@ class GameProperties(Enum):
 
 
 class Screen(Enum):
-    WIDTH = 512
-    HEIGHT = 512
+    WIDTH = 360
+    HEIGHT = 360
     BACKGROUND_COLOR = (179, 179, 179)
 
 
@@ -42,14 +42,14 @@ class Score(Enum):
 class Rewards(Enum):
     PICKED_COIN = 5
     HIT_BY_BOMB = -1
-    EACH_ITERATION_PENALTY = -0.005
+    EACH_ITERATION_PENALTY = -0.001
 
 
 class PlayerProperties(Enum):
     BOT_PLAYER_IMAGE_PATH = os.path.join(base_image_path, 'player.png')
     HUMAN_PLAYER_IMAGE_PATH = os.path.join(base_image_path, 'human_player.png')
-    WIDTH = 25
-    HEIGHT = 25
+    WIDTH = 27
+    HEIGHT = 27
     BOT_PLAYER_COLOR = (204, 0, 0)
     HUMAN_PLAYER_COLOR = (0, 153, 51)
 
@@ -59,8 +59,8 @@ class BombProperties(Enum):
     IMAGE_PATH_EXPLOSION = os.path.join(base_image_path, 'explosion.png')
     WIDTH = PlayerProperties.WIDTH.value
     HEIGHT = PlayerProperties.HEIGHT.value
-    EXPLOSION_WIDTH = PlayerProperties.WIDTH.value * 3
-    EXPLOSION_HEIGHT = PlayerProperties.HEIGHT.value * 3
+    EXPLOSION_WIDTH = PlayerProperties.WIDTH.value * 2.5
+    EXPLOSION_HEIGHT = PlayerProperties.WIDTH.value * 2.5
     COLOR = (0, 0, 0)
     EXPLOSION_COLOR = (255, 153, 0)
     TIME_TO_EXPLOSION = 50

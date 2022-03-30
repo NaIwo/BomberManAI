@@ -11,7 +11,7 @@ from ray import shutdown
 
 
 def env_creator(args):
-    return parallel_env(num_players=4, num_bombs=5, num_coins=5, score_limit=10, iteration_limit=1000)
+    return parallel_env(num_players=2, num_bombs=3, num_coins=6, score_limit=10, iteration_limit=1000)
 
 
 if __name__ == "__main__":
@@ -36,10 +36,8 @@ if __name__ == "__main__":
 
     def policy_mapping_fn(agent_id, episode, worker, **kwargs):
         agent_idx = int(agent_id[-1])
-        return "learning_policy" if episode.episode_id % 2 == agent_idx % 2 else "random_policy"
+        return "learning_policy" #if episode.episode_id % 2 == agent_idx % 2 else "random_policy"
 
-    # policies = {"policy_0": PolicySpec(None, observation_space, act_space, config)}
-    # policy_ids = list(policies.keys())
 
     policies = {
         "learning_policy": PolicySpec(None, observation_space, act_space, config),
@@ -66,12 +64,12 @@ if __name__ == "__main__":
             "compress_observations": False,
             "batch_mode": 'truncate_episodes',
 
-            'lr': 0.0003,
-            'lambda': 0.95,
+            'lr': 0.0001,
+            'lambda': 0.90,
             'gamma': 0.99,
-            'sgd_minibatch_size': 256,
+            'sgd_minibatch_size': 512,
             'train_batch_size': 4000,
-            'clip_param': 0.2,
+            # 'clip_param': 0.2,
             # For running in editor, just use one Worker (we only have
             # one Unity running)!
             'num_sgd_iter': 20,

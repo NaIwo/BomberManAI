@@ -1,14 +1,15 @@
 import pygame
-from typing import Union, Dict, Callable
+from typing import Union, Dict, Callable, Optional
 
 from bomberman import ManualPolicy, raw_env
 
 
-def run_manual_policy(environment=None, agents_policy: Union[Dict[str, Callable], Callable, None] = None) -> None:
+def run_manual_policy(environment=None, agents_policy: Union[Dict[str, Callable], Callable, None] = None,
+                      human_player_idx: Optional[int] = 0) -> None:
     FPS: int = 85
     clock = pygame.time.Clock()
 
-    env = environment if environment is not None else raw_env(human_player_idx=0, iteration_limit=300)
+    env = environment if environment is not None else raw_env(human_player_idx=human_player_idx, iteration_limit=1100)
     env.reset()
 
     manual_policy = ManualPolicy(env)
@@ -21,7 +22,7 @@ def run_manual_policy(environment=None, agents_policy: Union[Dict[str, Callable]
         if done:
             env.reset()
 
-        if agent == manual_policy.agent:
+        if agent == manual_policy.agent and human_player_idx is not None:
             action = manual_policy(observation, agent)
         else:
             if agents_policy is None:

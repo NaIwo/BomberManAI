@@ -9,16 +9,18 @@ from ray.rllib.env.wrappers.pettingzoo_env import PettingZooEnv
 from ray.rllib.models import ModelCatalog
 from pathlib import Path
 import pickle5 as pickle
+from typing import Optional
 
 # Example. Change it for your purpose.
-checkpoint_path = 'RL/ray_results/ bomberman/PPO/PPO_bomberman_b098e_00000_0_2022-03-23_17-31-28/checkpoint_000120/checkpoint-120'
+checkpoint_path = 'RL/ray_results/ bomberman/PPO/PPO_bomberman_0ecd1_00000_0_2022-03-30_22-22-01/checkpoint_000280/checkpoint-280'
 params_path = Path(checkpoint_path).parent.parent / "params.pkl"
 
 ModelCatalog.register_custom_model("BomberModel", BomberModel)
 
+human_player_idx: Optional[int] = None
 
 def env_creator():
-    return raw_env(num_players=4, num_bombs=5, num_coins=5, score_limit=10, iteration_limit=1000)
+    return raw_env(num_players=2, num_bombs=10, num_coins=10, score_limit=10, iteration_limit=1000, human_player_idx=human_player_idx)
 
 
 if __name__ == '__main__':
@@ -36,5 +38,5 @@ if __name__ == '__main__':
     PPOagent = PPOTrainer(env=env_name, config=config)
     PPOagent.restore(checkpoint_path)
 
-    run_manual_policy(environment=env,
+    run_manual_policy(environment=env, human_player_idx=human_player_idx,
                       agents_policy=lambda obs: PPOagent.get_policy("learning_policy").compute_single_action(obs)[0])

@@ -7,7 +7,7 @@ from pettingzoo.utils import wrappers
 from pettingzoo.utils import parallel_to_aec
 
 from bomberman.game.bomberman_game import BomberManGame
-from bomberman.game.config import GameProperties, Score
+from bomberman.game.config import GameProperties, Score, Screen
 
 
 def env(**kwargs):
@@ -52,10 +52,10 @@ class parallel_env(ParallelEnv):
         self.agents: List[str] = self.possible_agents[:]
         self.agent_name_mapping: Dict = dict(zip(self.possible_agents, list(range(len(self.possible_agents)))))
 
-        shape: Tuple = (self.game.get_number_of_features(),)
+        shape: Tuple = self.game.get_observations_shape()
         self.observation_spaces: Dict = dict(
             zip(self.agents,
-                [Box(low=-np.inf, high=np.inf, shape=shape, dtype=np.float32) for _ in self.possible_agents])
+                [Box(low=0, high=1, shape=shape, dtype=np.float32) for _ in self.possible_agents])
         )
 
         num_actions: int = self.game.get_number_of_possible_moves()
