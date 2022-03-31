@@ -9,34 +9,50 @@ from ray.rllib.env.wrappers.pettingzoo_env import PettingZooEnv
 from ray.rllib.models import ModelCatalog
 from pathlib import Path
 import pickle5 as pickle
-from typing import Optional
+from typing import Optional, Dict
 
 # Example. Change it for your purpose.
-checkpoint_path = 'RL/ray_results/ bomberman/PPO/PPO_bomberman_0ecd1_00000_0_2022-03-30_22-22-01/checkpoint_000280/checkpoint-280'
-params_path = Path(checkpoint_path).parent.parent / "params.pkl"
+checkpoint_path_1 = 'RL/ray_results/ bomberman/PPO/PPO_bomberman_fcb93_00000_0_2022-03-31_10-45-59/checkpoint_000300/checkpoint-300'
+params_path_1 = Path(checkpoint_path_1).parent.parent / "params.pkl"
+
+checkpoint_path_2 = 'RL/ray_results/ bomberman/PPO/PPO_bomberman_fcb93_00000_0_2022-03-31_10-45-59/checkpoint_000150/checkpoint-150'
+params_path_2 = Path(checkpoint_path_1).parent.parent / "params.pkl"
 
 ModelCatalog.register_custom_model("BomberModel", BomberModel)
 
 human_player_idx: Optional[int] = None
 
+
 def env_creator():
-    return raw_env(num_players=2, num_bombs=10, num_coins=10, score_limit=10, iteration_limit=1000, human_player_idx=human_player_idx)
+    return raw_env(num_players=4, num_bombs=3, num_coins=6, score_limit=10, iteration_limit=1000,
+                   human_player_idx=human_player_idx)
 
 
-if __name__ == '__main__':
-    env = env_creator()
-    env_name = 'bomberman_v0'
-    register_env(env_name, lambda config: PettingZooEnv(env_creator()))
-
+def load_agent(params_path: Path, checkpoint_path: str) -> PPOTrainer:
     with open(params_path, "rb") as f:
         config = pickle.load(f)
         # num_workers not needed since we are not training
         del config['num_workers']
         del config['num_gpus']
 
-    ray.init(num_cpus=8, num_gpus=1)
     PPOagent = PPOTrainer(env=env_name, config=config)
     PPOagent.restore(checkpoint_path)
+    return PPOagent
 
-    run_manual_policy(environment=env, human_player_idx=human_player_idx,
-                      agents_policy=lambda obs: PPOagent.get_policy("learning_policy").compute_single_action(obs)[0])
+
+if __name__ == '__main__':
+    env = env_creator()
+    env_name = 'bomberman_v0'
+    register_env(env_name, lambda config: PettingZooEnv(env_creator()))
+    ray.init(num_cpus=8, num_gpus=1)
+
+    agent_1 = load_agent(params_path_1, checkpoint_path_1)
+    agent_2 = load_agent(params_path_2, checkpoint_path_2)
+    agents: Dict = {
+        'Player_0': lambda obs: agent_1.get_policy("learning_policy").compute_single_action(obs)[0],
+        'Player_1': lambda obs: agent_2.get_policy("learning_policy").compute_single_action(obs)[0],
+        'Player_2': lambda obs: agent_1.get_policy("learning_policy").compute_single_action(obs)[0],
+        'Player_3': lambda obs: agent_2.get_policy("learning_policy").compute_single_action(obs)[0]
+    }
+
+    run_manual_policy(environment=env, human_player_idx=human_player_idx, agents_policy=agents)

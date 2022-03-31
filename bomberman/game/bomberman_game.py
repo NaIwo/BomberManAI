@@ -239,13 +239,13 @@ class BomberManGame:
             player_matrix: Tuple[int, int] = (player.rect.centerx, player.rect.centery)
             result[idx:idx + elements[2]] = np.array([self.angle_between(agent_matrix, player_matrix) / max_angel,
                                                       np.linalg.norm(player_matrix) / max_norm,
-                                                      player.score / self.score_limit])
+                                                      max(0, player.score / self.score_limit)])
             idx += elements[2]
 
         result[:3] = np.array([np.linalg.norm(agent_matrix) / max_norm,
                                agent_matrix[0] / Screen.WIDTH.value,
                                agent_matrix[1] / Screen.HEIGHT.value])
-        return np.clip(result, 0, 1)
+        return np.clip(result, -1, 1)
 
     @lru_cache(maxsize=None)
     def angle_between(self, v1: Tuple, v2: Tuple) -> float:

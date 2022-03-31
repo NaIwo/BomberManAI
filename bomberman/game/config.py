@@ -6,7 +6,7 @@ base_image_path: str = os.path.join('game', 'board_elements', 'images')
 
 
 class GameProperties(Enum):
-    NUM_PLAYERS = 2
+    NUM_PLAYERS = 4
     NUM_BOMBS = 3
     NUM_COINS = 6
     FPS = 30

@@ -8,10 +8,11 @@ from ray.rllib.env.wrappers.pettingzoo_env import ParallelPettingZooEnv
 from ray.rllib.policy.policy import PolicySpec
 from ray.rllib.examples.policy.random_policy import RandomPolicy
 from ray import shutdown
+import random
 
 
 def env_creator(args):
-    return parallel_env(num_players=2, num_bombs=3, num_coins=6, score_limit=10, iteration_limit=1000)
+    return parallel_env(num_players=4, num_bombs=3, num_coins=6, score_limit=10, iteration_limit=1000)
 
 
 if __name__ == "__main__":
@@ -35,8 +36,9 @@ if __name__ == "__main__":
 
 
     def policy_mapping_fn(agent_id, episode, worker, **kwargs):
-        agent_idx = int(agent_id[-1])
-        return "learning_policy" #if episode.episode_id % 2 == agent_idx % 2 else "random_policy"
+        # agent_idx = int(agent_id[-1])
+        # return "learning_policy" if episode.episode_id % 2 == agent_idx % 2 else "random_policy"
+        return random.sample(["learning_policy", "random_policy"], 1)[0]
 
 
     policies = {
@@ -48,7 +50,7 @@ if __name__ == "__main__":
         "PPO",
         name="PPO",
         stop={
-            "timesteps_total": 5000000
+            "timesteps_total": 15_000_000
         },
         checkpoint_freq=10,
         local_dir="./ray_results/ " + env_name,
@@ -64,7 +66,7 @@ if __name__ == "__main__":
             "compress_observations": False,
             "batch_mode": 'truncate_episodes',
 
-            'lr': 0.0001,
+            'lr': 0.0002,
             'lambda': 0.90,
             'gamma': 0.99,
             'sgd_minibatch_size': 512,

@@ -55,7 +55,7 @@ class parallel_env(ParallelEnv):
         shape: Tuple = self.game.get_observations_shape()
         self.observation_spaces: Dict = dict(
             zip(self.agents,
-                [Box(low=0, high=1, shape=shape, dtype=np.float32) for _ in self.possible_agents])
+                [Box(low=-1, high=1, shape=shape, dtype=np.float32) for _ in self.possible_agents])
         )
 
         num_actions: int = self.game.get_number_of_possible_moves()
