@@ -26,7 +26,7 @@ pygame == 2.1.0
 ---
 #### For the purpose of training agents 
 ```
-ray == 1.11.0
+ray == 1.10.0
 torch == 1.11.0
 ```
 ## Parameters setting
