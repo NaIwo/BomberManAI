@@ -6,7 +6,7 @@ from bomberman import ManualPolicy, raw_env
 
 def run_manual_policy(environment=None, agents_policy: Union[Dict[str, Callable], Callable, None] = None,
                       human_player_idx: Optional[int] = 0) -> None:
-    FPS: int = 85
+    FPS: int = 125
     clock = pygame.time.Clock()
 
     env = environment if environment is not None else raw_env(human_player_idx=human_player_idx, iteration_limit=1100)

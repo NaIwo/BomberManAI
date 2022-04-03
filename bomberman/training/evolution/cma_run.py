@@ -9,7 +9,7 @@ from typing import Optional, Dict
 import os
 
 # Example. Change it for your purpose.
-checkpoint_path = os.path.join('.', 'CMA', '20220402-162354', 'weights.npy')
+checkpoint_path = os.path.join('.', 'CMA', '20220403-185817', 'weights.npy')
 
 human_player_idx: Optional[int] = None
 

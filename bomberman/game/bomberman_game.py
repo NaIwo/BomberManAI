@@ -2,9 +2,8 @@ import pygame
 from pygame.sprite import Sprite, Group
 from typing import List, Dict, Union, Optional, Tuple
 import numpy as np
-from functools import lru_cache
 
-from bomberman.game.config import Screen, GameProperties, PlayerProperties, Move, Score, MOVE_TO_NUMBER, Rewards
+from bomberman.game.config import Screen, GameProperties, Move, Score, MOVE_TO_NUMBER, Rewards
 from bomberman.game.board_elements import Player, Bomb, Coin
 from bomberman.game.utils import RandomValues
 
@@ -199,9 +198,9 @@ class BomberManGame:
     def get_observations_shape(self) -> Tuple:
         elements: List[int] = self.get_number_of_elements_for_each_observations()
         return (self.attributes.num_coins * elements[0] +
-                self.attributes.num_bombs * elements[1] +
                 (self.attributes.num_players - 1) * elements[2] +
-                3,)
+                self.attributes.num_bombs * elements[1] +
+                2,)
 
     @staticmethod
     def get_number_of_elements_for_each_observations() -> List:
@@ -211,51 +210,36 @@ class BomberManGame:
         elements: List[int] = self.get_number_of_elements_for_each_observations()
         shape: Tuple = self.get_observations_shape()
         result: np.ndarray = np.zeros(shape=shape)
-        idx: int = 3
-        max_norm: float = np.linalg.norm(np.array([Screen.WIDTH.value, Screen.HEIGHT.value]))
-        max_angel: float = self.angle_between((1, 0), (0, 1))
+        idx: int = 2
+        normalizer: np.ndarray = np.array([Screen.WIDTH.value, Screen.HEIGHT.value])
         current_agent: Sprite = self.attributes.players_list.sprites()[agent_idx]
-        agent_matrix: Tuple[int, int] = (current_agent.rect.centerx, current_agent.rect.centery)
+        agent_matrix: np.ndarray = np.array([current_agent.rect.centerx, current_agent.rect.centery])
 
         coin: Sprite
         for coin in self.attributes.coins_list.sprites():
-            coin_matrix: Tuple[int, int] = (coin.rect.centerx, coin.rect.centery)
-            result[idx:idx + elements[0]] = np.array([self.angle_between(agent_matrix, coin_matrix) / max_angel,
-                                                      np.linalg.norm(coin_matrix) / max_norm])
+            coin_matrix: np.ndarray = np.array([coin.rect.centerx, coin.rect.centery])
+            result[idx:idx + elements[0]] = np.array((agent_matrix - coin_matrix) / normalizer)
             idx += elements[0]
-
-        bomb: Sprite
-        for bomb in self.attributes.bombs_list.sprites():
-            bomb_matrix: Tuple[int, int] = (bomb.rect.centerx, bomb.rect.centery)
-            result[idx:idx + elements[1]] = np.array([-self.angle_between(agent_matrix, bomb_matrix) / max_angel,
-                                                      -np.linalg.norm(bomb_matrix) / max_norm,
-                                                      bomb.is_during_explosion()])
-            idx += elements[1]
 
         player: Sprite
         for player in self.attributes.players_list.sprites():
             if player.idx == agent_idx:
                 continue
-            player_matrix: Tuple[int, int] = (player.rect.centerx, player.rect.centery)
-            result[idx:idx + elements[2]] = np.array([self.angle_between(agent_matrix, player_matrix) / max_angel,
-                                                      np.linalg.norm(player_matrix) / max_norm,
-                                                      max(0, player.score / self.score_limit)])
+            player_matrix: np.ndarray = np.array([player.rect.centerx, player.rect.centery])
+            result[idx:idx + elements[1]] = np.concatenate(
+                [(agent_matrix - player_matrix) / normalizer, [max(0, player.score / self.score_limit)]])
+            idx += elements[1]
+
+        bomb: Sprite
+        for bomb in self.attributes.bombs_list.sprites():
+            bomb_matrix: np.ndarray = np.array([bomb.rect.centerx, bomb.rect.centery])
+            result[idx:idx + elements[2]] = np.concatenate(
+                [(agent_matrix - bomb_matrix) / normalizer, [bomb.is_during_explosion()]])
             idx += elements[2]
 
-        result[:3] = np.array([np.linalg.norm(agent_matrix) / max_norm,
-                               agent_matrix[0] / Screen.WIDTH.value,
-                               agent_matrix[1] / Screen.HEIGHT.value])
+        result[:2] = np.array(agent_matrix / normalizer)
+
         return np.clip(result, -1, 1)
-
-    @lru_cache(maxsize=None)
-    def angle_between(self, v1: Tuple, v2: Tuple) -> float:
-        v1_u = self.unit_vector(np.array(v1))
-        v2_u = self.unit_vector(np.array(v2))
-        return np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))
-
-    @staticmethod
-    def unit_vector(vector: np.ndarray) -> np.ndarray:
-        return vector / np.linalg.norm(vector)
 
     @staticmethod
     def get_number_of_possible_moves() -> int:

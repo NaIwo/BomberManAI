@@ -1,17 +1,18 @@
 from model import Model
 from bomberman import parallel_env
+from custom_eaGenerateUpdate import eaGenerateUpdate
 
 import numpy as np
 import os
 import datetime
 from collections import defaultdict
-from itertools import chain, zip_longest
+from itertools import chain
 from typing import Dict, DefaultDict, List, Optional
-from deap import creator, base, cma, tools, algorithms
+from deap import creator, base, cma, tools
 
 NUM_PLAYERS: int = 4
-LAMBDA: int = max(1, NUM_PLAYERS - 1) * 30
-NGEN: int = 800
+LAMBDA: int = NUM_PLAYERS * 8
+NGEN: int = 500
 
 SAVE_PATH: str = os.path.join('.', 'CMA', datetime.datetime.now().strftime("%Y%m%d-%H%M%S"), 'weights.npy')
 os.makedirs(SAVE_PATH[:SAVE_PATH.rfind(os.sep)], exist_ok=False)
@@ -30,15 +31,9 @@ def evaluate(individuals) -> List:
 
     policies: Dict = dict()
 
-    random_agent: Optional[str] = None
-
     agent: str
     weights: Optional[np.ndarray]
-    for agent, weights in zip_longest(np.random.permutation(env.agents), individuals):
-        if weights is None:
-            policies[agent] = lambda _: env.action_space(agent).sample()
-            random_agent = agent
-            continue
+    for agent, weights in zip(env.agents, individuals):
         observation_space = env.observation_space(agent)
         act_space = env.action_space(agent)
         policies[agent] = Model.from_weights(observation_space, act_space.n, weights)
@@ -55,12 +50,12 @@ def evaluate(individuals) -> List:
         for agent, reward in rewards.items():
             rewards_sum[agent] += reward
     env.close()
-    return [(rew,) for agent, rew in rewards_sum.items() if agent != random_agent]
+    return [(rew,) for agent, rew in rewards_sum.items()]
 
 
 def custom_map_func(evaluate_func, population):
-    elements: np.ndarray = np.array(population).reshape(-1, max(1, NUM_PLAYERS - 1), len(population[0]))
-    np.random.shuffle(elements)
+    elements: np.ndarray = np.array(population).reshape(-1, NUM_PLAYERS, len(population[0]))
+    #  np.random.shuffle(elements)
     return chain.from_iterable(map(evaluate_func, elements))
 
 
@@ -90,10 +85,7 @@ def train():
     stats.register("min", np.min)
     stats.register("max", np.max)
 
-    algorithms.eaGenerateUpdate(toolbox, ngen=NGEN, stats=stats, halloffame=hof)
-
-    best_weights: np.ndarray = np.array(hof.items[0])
-    np.save(SAVE_PATH, best_weights)
+    eaGenerateUpdate(toolbox, ngen=NGEN, stats=stats, halloffame=hof, save_path=SAVE_PATH)
 
 
 if __name__ == '__main__':
