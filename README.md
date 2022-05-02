@@ -28,6 +28,7 @@ pygame == 2.1.0
 ```
 ray == 1.10.0
 torch == 1.11.0
+deap==1.3.1
 ```
 ## Parameters setting
 ```
