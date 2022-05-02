@@ -11,6 +11,11 @@ You can use bombs to hurt your opponent and decrease his score.
 The limit of game is number of episodes or score limit. 
 The winner is the player who has collected the most coins.
 
+You can run the environment in multiple configurations. 
+An agent learned using RL can face an agent learned using evolutionary computation or your own written heuristics. 
+You can also control the agent yourself, trying your hand against learned opponents. 
+Examples of how to train agents can be found [here - BomberManAI/bomberman/training](https://github.com/NaIwo/BomberManAI/tree/main/bomberman/training).
+
 ![Alt Text](bomberman/game/board_elements/images/visualization.gif)
 
 # Requirements
@@ -28,7 +33,7 @@ pygame == 2.1.0
 ```
 ray == 1.10.0
 torch == 1.11.0
-deap==1.3.1
+deap == 1.3.1
 ```
 ## Parameters setting
 ```
